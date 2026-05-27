@@ -1,0 +1,19 @@
+export default interface Guardian{
+    readonly id: number,
+    firstName: string,
+    lastName: string,
+    kinship: string,
+    occupation: string,
+    workplace: string,
+    homeAddress: string,
+    city: string,
+    department: string,
+    phone: string,
+    email: string,
+    birthdate?: Date,
+    placeOfBirth?: string,
+    documentType: string,
+    documentNumber: string,
+
+
+}
