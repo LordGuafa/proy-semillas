@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
+import AdminView from './views/AdminView.vue';
 
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
+ <header>
 
     <div class="wrapper">
-  
+
 
       <nav>
         <RouterLink to="/">Home</RouterLink>
@@ -18,6 +18,7 @@ import { RouterLink, RouterView } from 'vue-router'
   </header>
 
   <RouterView />
+ <AdminView />
 </template>
 
 <style scoped>
