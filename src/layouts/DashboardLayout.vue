@@ -9,7 +9,7 @@
             <SideBar/>
         </div>
         <div class="main-content">
-            <slot></slot>
+            <slot name="dashboard"></slot>
         </div>
     </div>
 </template>

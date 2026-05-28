@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #45b071;
+  --color-accent: #ffa44f;
+  --color-base: #eefeff;
+}
+
+@layer base {
+  :root { color-scheme: light; }
+  html { @apply h-full; }
+  body { @apply min-h-full bg-base text-black font-sans antialiased; }
+  #app { @apply min-h-screen; }
+  h1 { @apply text-2xl font-bold text-primary; }
+  h2 { @apply text-xl font-semibold text-primary; }
+  h3 { @apply text-base font-medium text-accent; }
+}
+
+@layer components {
+  .sidebar-item {
+    @apply flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-gray-600 transition-colors duration-150;
+  }
+  .sidebar-item:hover { @apply bg-primary/10 text-primary; }
+  .sidebar-item.active { @apply border-l-4 border-primary bg-primary text-white; }
+  .panel-input { @apply w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 transition focus:border-primary focus:ring-2 focus:ring-primary/20; }
+}
