@@ -58,6 +58,14 @@
             Almuerzo
         </label>
 
+        <h3>Información relevante</h3>
+        
+        <p>
+            Escribe aquí información importante sobre el niño o niña que debamos tener en cuenta, por ejemplo:
+            alergias, condiciones médicas, tratamientos, necesidades especiales o cualquier otra observación relevante.
+        </p>
+        <label for="observations">Observaciones:</label>
+        <textarea name="observations" id="observations" v-model="observations" rows="4" style="width:100%;"></textarea>
 
     </div>
     <div>
@@ -200,26 +208,60 @@
 
     <h2>Firmas</h2>
 
-
-    <div>
+    <div style="margin-top:12px; padding:16px; border:1px solid #ddd; border-radius:8px;">
         <h3>Firma de la madre</h3>
-        <canvas ref="motherCanvas" class="signature-pad"
-            style="border:1px solid #ccc; width:100%; height:200px; touch-action: none; pointer-events:auto; user-select:none; -ms-touch-action: none;"></canvas>
-        <div style="margin-top:8px;">
-            <button type="button" @click="clearMother">Limpiar</button>
-            <button type="button" @click="saveMother">Guardar firma</button>
+        <label style="display:block; margin-bottom:8px;">
+            <input type="radio" name="motherSignatureMode" value="digital" v-model="motherSignatureMode">
+            Firma digital en pantalla
+        </label>
+        <label style="display:block; margin-bottom:12px;">
+            <input type="radio" name="motherSignatureMode" value="upload" v-model="motherSignatureMode">
+            Subir firma digital desde el dispositivo
+        </label>
+
+        <div v-show="motherSignatureMode === 'digital'" style="margin-bottom:16px;">
+            <canvas ref="motherSignatureCanvas" class="signature-pad"
+                style="border:1px solid #ccc; width:100%; height:200px; touch-action:none; pointer-events:auto; user-select:none; -ms-touch-action:none;"></canvas>
+            <div style="margin-top:8px;">
+                <button type="button" @click="clearMotherSignature">Limpiar</button>
+                <button type="button" @click="saveMotherSignature">Guardar firma</button>
+            </div>
         </div>
-        
+
+        <div v-show="motherSignatureMode === 'upload'">
+            <input type="file" accept="image/*" @change="handleMotherSignatureUpload">
+            <p v-if="motherSignatureFileName" style="margin-top:8px;">
+                Archivo seleccionado: {{ motherSignatureFileName }}
+            </p>
+        </div>
     </div>
-    <div style="margin-top:18px;">
+
+    <div style="margin-top:12px; padding:16px; border:1px solid #ddd; border-radius:8px;">
         <h3>Firma del padre</h3>
-        <canvas ref="fatherCanvas" class="signature-pad"
-            style="border:1px solid #ccc; width:100%; height:200px; touch-action: none; pointer-events:auto; user-select:none; -ms-touch-action: none;"></canvas>
-        <div style="margin-top:8px;">
-            <button type="button" @click="clearFather">Limpiar</button>
-            <button type="button" @click="saveFather">Guardar firma</button>
+        <label style="display:block; margin-bottom:8px;">
+            <input type="radio" name="fatherSignatureMode" value="digital" v-model="fatherSignatureMode">
+            Firma digital en pantalla
+        </label>
+        <label style="display:block; margin-bottom:12px;">
+            <input type="radio" name="fatherSignatureMode" value="upload" v-model="fatherSignatureMode">
+            Subir firma digital desde el dispositivo
+        </label>
+
+        <div v-show="fatherSignatureMode === 'digital'" style="margin-bottom:16px;">
+            <canvas ref="fatherSignatureCanvas" class="signature-pad"
+                style="border:1px solid #ccc; width:100%; height:200px; touch-action:none; pointer-events:auto; user-select:none; -ms-touch-action:none;"></canvas>
+            <div style="margin-top:8px;">
+                <button type="button" @click="clearFatherSignature">Limpiar</button>
+                <button type="button" @click="saveFatherSignature">Guardar firma</button>
+            </div>
         </div>
-            
+
+        <div v-show="fatherSignatureMode === 'upload'">
+            <input type="file" accept="image/*" @change="handleFatherSignatureUpload">
+            <p v-if="fatherSignatureFileName" style="margin-top:8px;">
+                Archivo seleccionado: {{ fatherSignatureFileName }}
+            </p>
+        </div>
     </div>
     <label>
         <input type="checkbox" v-model="acceptedPrivacyPolicy">
@@ -285,6 +327,7 @@ const motherCompany: Ref<string> = ref('')
 const motherOccupation: Ref<string> = ref('')
 const motherEmail: Ref<string> = ref('')
 const motherCell: Ref<string> = ref('')
+const observations: Ref<string> = ref('')
 
 const acceptedPrivacyPolicy: Ref<boolean> = ref(false)
 const handlePhotoChange = (event: Event) => {
@@ -292,163 +335,145 @@ const handlePhotoChange = (event: Event) => {
     photo.value = input.files?.[0] ?? null
 }
 
-// firmas (implementación nativa para mostrar y guardar firma sin dependencia externa)
-const motherCanvas = ref<HTMLCanvasElement | null>(null)
-const motherSignature: Ref<string> = ref('')
-let motherCtx: CanvasRenderingContext2D | null = null
-let drawing = false
+// Firmas (implementación nativa para firmar y guardar sin dependencia externa)
+type SignatureMode = 'digital' | 'upload'
 
-// Father signature
-const fatherCanvas = ref<HTMLCanvasElement | null>(null)
-const fatherSignature: Ref<string> = ref('')
-let fatherCtx: CanvasRenderingContext2D | null = null
-let fatherDrawing = false
+const createSignatureSection = (initialMode: SignatureMode = 'digital') => {
+    const mode: Ref<SignatureMode> = ref(initialMode)
+    const canvas = ref<HTMLCanvasElement | null>(null)
+    const dataUrl: Ref<string> = ref('')
+    const file: Ref<File | null> = ref(null)
+    const fileName: Ref<string> = ref('')
+    let ctx: CanvasRenderingContext2D | null = null
+    let drawing = false
 
-const resizeFatherCanvas = () => {
-    const c = fatherCanvas.value
-    if (!c) return
-    const ratio = Math.max(window.devicePixelRatio || 1, 1)
-    const rect = c.getBoundingClientRect()
-    c.width = Math.round(rect.width * ratio)
-    c.height = Math.round(rect.height * ratio)
-    const ctx = c.getContext('2d')
-    if (!ctx) return
-    ctx.scale(ratio, ratio)
-    ctx.lineCap = 'round'
-    ctx.lineJoin = 'round'
-    ctx.lineWidth = 2
-    ctx.strokeStyle = '#000'
-    fatherCtx = ctx
+    const resizeCanvas = () => {
+        const element = canvas.value
+        if (!element) return
+        const ratio = Math.max(window.devicePixelRatio || 1, 1)
+        const rect = element.getBoundingClientRect()
+        element.width = Math.round(rect.width * ratio)
+        element.height = Math.round(rect.height * ratio)
+        const context = element.getContext('2d')
+        if (!context) return
+        context.scale(ratio, ratio)
+        context.lineCap = 'round'
+        context.lineJoin = 'round'
+        context.lineWidth = 2
+        context.strokeStyle = '#000'
+        ctx = context
+    }
+
+    const pointerDown = (e: PointerEvent) => {
+        if (!ctx || !canvas.value) return
+        drawing = true
+        canvas.value.setPointerCapture(e.pointerId)
+        ctx.beginPath()
+        const rect = canvas.value.getBoundingClientRect()
+        ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top)
+    }
+
+    const pointerMove = (e: PointerEvent) => {
+        if (!drawing || !ctx || !canvas.value) return
+        const rect = canvas.value.getBoundingClientRect()
+        ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top)
+        ctx.stroke()
+    }
+
+    const pointerUp = (e: PointerEvent) => {
+        if (!canvas.value) return
+        drawing = false
+        try { canvas.value.releasePointerCapture(e.pointerId) } catch { }
+    }
+
+    const handleUpload = (event: Event) => {
+        const input = event.target as HTMLInputElement
+        file.value = input.files?.[0] ?? null
+        fileName.value = file.value?.name ?? ''
+    }
+
+    const clear = () => {
+        if (!canvas.value || !ctx) return
+        const rect = canvas.value.getBoundingClientRect()
+        ctx.clearRect(0, 0, rect.width, rect.height)
+        dataUrl.value = ''
+    }
+
+    const save = () => {
+        if (!canvas.value) return
+        dataUrl.value = canvas.value.toDataURL('image/png')
+        console.log('Firma digital guardada', dataUrl.value)
+    }
+
+    const mount = async () => {
+        await nextTick()
+        resizeCanvas()
+        window.addEventListener('resize', resizeCanvas)
+        const element = canvas.value
+        if (element) {
+            element.addEventListener('pointerdown', pointerDown)
+            element.addEventListener('pointermove', pointerMove)
+            element.addEventListener('pointerup', pointerUp)
+            element.addEventListener('pointercancel', pointerUp)
+        }
+    }
+
+    const unmount = () => {
+        window.removeEventListener('resize', resizeCanvas)
+        const element = canvas.value
+        if (element) {
+            element.removeEventListener('pointerdown', pointerDown)
+            element.removeEventListener('pointermove', pointerMove)
+            element.removeEventListener('pointerup', pointerUp)
+            element.removeEventListener('pointercancel', pointerUp)
+        }
+    }
+
+    return {
+        mode,
+        canvas,
+        dataUrl,
+        file,
+        fileName,
+        handleUpload,
+        clear,
+        save,
+        mount,
+        unmount,
+    }
 }
 
-const pointerDownFather = (e: PointerEvent) => {
-    if (!fatherCtx || !fatherCanvas.value) return
-    fatherDrawing = true
-    fatherCanvas.value.setPointerCapture(e.pointerId)
-    fatherCtx.beginPath()
-    const rect = fatherCanvas.value.getBoundingClientRect()
-    fatherCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top)
-}
+const motherSignature = createSignatureSection('digital')
+const motherSignatureMode = motherSignature.mode
+const motherSignatureCanvas = motherSignature.canvas
+const motherSignatureDataUrl = motherSignature.dataUrl
+const motherSignatureFile = motherSignature.file
+const motherSignatureFileName = motherSignature.fileName
+const handleMotherSignatureUpload = motherSignature.handleUpload
+const clearMotherSignature = motherSignature.clear
+const saveMotherSignature = motherSignature.save
 
-const pointerMoveFather = (e: PointerEvent) => {
-    if (!fatherDrawing || !fatherCtx || !fatherCanvas.value) return
-    const rect = fatherCanvas.value.getBoundingClientRect()
-    fatherCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top)
-    fatherCtx.stroke()
-}
-
-const pointerUpFather = (e: PointerEvent) => {
-    if (!fatherCanvas.value) return
-    fatherDrawing = false
-    try { fatherCanvas.value.releasePointerCapture(e.pointerId) } catch { }
-}
-
-const resizeMotherCanvas = () => {
-    const c = motherCanvas.value
-    if (!c) return
-    const ratio = Math.max(window.devicePixelRatio || 1, 1)
-    const rect = c.getBoundingClientRect()
-    c.width = Math.round(rect.width * ratio)
-    c.height = Math.round(rect.height * ratio)
-    const ctx = c.getContext('2d')
-    if (!ctx) return
-    ctx.scale(ratio, ratio)
-    ctx.lineCap = 'round'
-    ctx.lineJoin = 'round'
-    ctx.lineWidth = 2
-    ctx.strokeStyle = '#000'
-    motherCtx = ctx
-}
-
-const pointerDown = (e: PointerEvent) => {
-    if (!motherCtx || !motherCanvas.value) return
-    drawing = true
-    motherCanvas.value.setPointerCapture(e.pointerId)
-    motherCtx.beginPath()
-    const rect = motherCanvas.value.getBoundingClientRect()
-    motherCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top)
-}
-
-const pointerMove = (e: PointerEvent) => {
-    if (!drawing || !motherCtx || !motherCanvas.value) return
-    const rect = motherCanvas.value.getBoundingClientRect()
-    motherCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top)
-    motherCtx.stroke()
-}
-
-const pointerUp = (e: PointerEvent) => {
-    if (!motherCanvas.value) return
-    drawing = false
-    try { motherCanvas.value.releasePointerCapture(e.pointerId) } catch { }
-}
+const fatherSignature = createSignatureSection('digital')
+const fatherSignatureMode = fatherSignature.mode
+const fatherSignatureCanvas = fatherSignature.canvas
+const fatherSignatureDataUrl = fatherSignature.dataUrl
+const fatherSignatureFile = fatherSignature.file
+const fatherSignatureFileName = fatherSignature.fileName
+const handleFatherSignatureUpload = fatherSignature.handleUpload
+const clearFatherSignature = fatherSignature.clear
+const saveFatherSignature = fatherSignature.save
 
 onMounted(async () => {
-    await nextTick()
-    resizeMotherCanvas()
-    window.addEventListener('resize', resizeMotherCanvas)
-    const mc = motherCanvas.value
-    if (mc) {
-        mc.addEventListener('pointerdown', pointerDown)
-        mc.addEventListener('pointermove', pointerMove)
-        mc.addEventListener('pointerup', pointerUp)
-        mc.addEventListener('pointercancel', pointerUp)
-    }
-    // father canvas setup
-    resizeFatherCanvas()
-    window.addEventListener('resize', resizeFatherCanvas)
-    const fc = fatherCanvas.value
-    if (fc) {
-        fc.addEventListener('pointerdown', pointerDownFather)
-        fc.addEventListener('pointermove', pointerMoveFather)
-        fc.addEventListener('pointerup', pointerUpFather)
-        fc.addEventListener('pointercancel', pointerUpFather)
-    }
+    await Promise.all([
+        motherSignature.mount(),
+        fatherSignature.mount(),
+    ])
 })
 
 onBeforeUnmount(() => {
-    window.removeEventListener('resize', resizeMotherCanvas)
-    window.removeEventListener('resize', resizeFatherCanvas)
-    const mc = motherCanvas.value
-    if (mc) {
-        mc.removeEventListener('pointerdown', pointerDown)
-        mc.removeEventListener('pointermove', pointerMove)
-        mc.removeEventListener('pointerup', pointerUp)
-        mc.removeEventListener('pointercancel', pointerUp)
-    }
-    const fc = fatherCanvas.value
-    if (fc) {
-        fc.removeEventListener('pointerdown', pointerDownFather)
-        fc.removeEventListener('pointermove', pointerMoveFather)
-        fc.removeEventListener('pointerup', pointerUpFather)
-        fc.removeEventListener('pointercancel', pointerUpFather)
-    }
+    motherSignature.unmount()
+    fatherSignature.unmount()
 })
-
-const clearMother = () => {
-    if (!motherCanvas.value || !motherCtx) return
-    const rect = motherCanvas.value.getBoundingClientRect()
-    motherCtx.clearRect(0, 0, rect.width, rect.height)
-    motherSignature.value = ''
-}
-
-const saveMother = () => {
-    if (!motherCanvas.value) return
-    motherSignature.value = motherCanvas.value.toDataURL('image/png')
-    console.log('Firma madre guardada', motherSignature.value)
-}
-
-const clearFather = () => {
-    if (!fatherCanvas.value || !fatherCtx) return
-    const rect = fatherCanvas.value.getBoundingClientRect()
-    fatherCtx.clearRect(0, 0, rect.width, rect.height)
-    fatherSignature.value = ''
-}
-
-const saveFather = () => {
-    if (!fatherCanvas.value) return
-    fatherSignature.value = fatherCanvas.value.toDataURL('image/png')
-    console.log('Firma padre guardada', fatherSignature.value)
-}
 
 </script>
 <style lang="">

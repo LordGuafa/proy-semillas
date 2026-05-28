@@ -1,8 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '@/views/HomeView.vue'
-import LoginView from '@/views/LoginView.vue'
-import AdmissionsView from '@/views/AdmissionsView.vue'
-import EnrollmentView from '@/views/EnrollmentView.vue'
+import HomeView from '@/views/landing/HomeView.vue'
+import LoginView from '@/views/admin/LoginView.vue'
+import AdmissionsView from '@/views/admmissions/AdmissionsView.vue'
+import EnrollmentView from '@/views/admmissions/EnrollmentView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
