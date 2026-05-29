@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
+import logoSemillas from '@/assets/logo_semillas.svg'
 import { useAuthStore } from '@/stores/authStore'
 
 const router = useRouter()
@@ -34,7 +35,7 @@ async function handleSubmit() {
     <div class="flex min-h-screen items-center justify-center bg-base px-4 py-10">
         <form class="w-full max-w-md rounded-2xl bg-white p-10 shadow-lg" @submit.prevent="handleSubmit">
             <div class="mb-8 text-center">
-                <p class="text-3xl font-bold text-primary">Semillas</p>
+                <img :src="logoSemillas" alt="Semillas" class="mx-auto h-20 w-auto" />
                 <p class="mt-2 text-sm text-accent">Panel Administrativo</p>
             </div>
 

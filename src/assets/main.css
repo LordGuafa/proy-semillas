@@ -7,20 +7,116 @@
 }
 
 @layer base {
-  :root { color-scheme: light; }
-  html { @apply h-full; }
-  body { @apply min-h-full bg-base text-black font-sans antialiased; }
-  #app { @apply min-h-screen; }
-  h1 { @apply text-2xl font-bold text-primary; }
-  h2 { @apply text-xl font-semibold text-primary; }
-  h3 { @apply text-base font-medium text-accent; }
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    @apply h-full;
+  }
+
+  body {
+    @apply min-h-full bg-base text-black font-sans antialiased;
+  }
+
+  #app {
+    @apply min-h-screen;
+  }
+
+  h1 {
+    @apply text-2xl font-bold text-primary;
+  }
+
+  h2 {
+    @apply text-xl font-semibold text-primary;
+  }
+
+  h3 {
+    @apply text-base font-medium text-accent;
+  }
+
+  p {
+    @apply text-base text-gray-800;
+    font-family: 'Comfortaa', sans-serif;
+  }
 }
 
 @layer components {
   .sidebar-item {
     @apply flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-gray-600 transition-colors duration-150;
   }
-  .sidebar-item:hover { @apply bg-primary/10 text-primary; }
-  .sidebar-item.active { @apply border-l-4 border-primary bg-primary text-white; }
-  .panel-input { @apply w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 transition focus:border-primary focus:ring-2 focus:ring-primary/20; }
+
+  .sidebar-item:hover {
+    @apply bg-primary/10 text-primary;
+  }
+
+  .sidebar-item.active {
+    @apply border-l-4 border-primary bg-primary text-white;
+  }
+
+  .panel-input {
+    @apply w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 transition focus:border-primary focus:ring-2 focus:ring-primary/20;
+  }
+
+  /* Título reutilizable con Amatic SC */
+  .title {
+    @apply text-3xl md:text-4xl font-bold tracking-tight text-primary;
+    font-family: 'Amatic SC', cursive;
+    color: #45b071;
+    align-content: center;
+  }
+
+  .title-sub {
+    @apply text-xl md:text-4xl font-semibold text-primary;
+    font-family: 'Amatic SC', cursive;
+    color: #ffa44f;
+  }
+
+  /* Header link hover with semi-transparent #63918b */
+  .header-link {
+    @apply transition-colors duration-150;
+    color: #45b071;
+  }
+
+  .header-link:hover {
+    color: #ffa44f;
+  }
+
+  .cloud-border {
+    position: absolute;
+    bottom: -10px;
+    left: 0;
+
+    width: 100%;
+    height: 36px;
+    pointer-events: none;
+
+    background-color: transparent;
+    /* Repeating large circles with white fill and orange stroke */
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='10' viewBox='0 0 36 36'><circle cx='18' cy='18' r='16' fill='%23ffffff' stroke='%23ffa44f' stroke-width='4'/></svg>");
+    background-repeat: repeat-x;
+    background-position: center top;
+    background-size: 36px 36px;
+    z-index: 0;
+  }
+
+  /* If header background isn't pure white, ensure the top area behind circles stays white */
+  .cloud-border::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 23px; /* cover more so less than half of each circle remains visible */
+    background-color: #ffffff;
+    z-index: 1;
+    pointer-events: none;
+  }
+}
+
+@layer utilities {
+  .font-comfortaa {
+    font-family: 'Comfortaa', sans-serif;
+  }
+
 }

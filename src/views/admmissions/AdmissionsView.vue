@@ -1,75 +1,62 @@
 <template>
-    <div>
-        <h1>¿Deseas visitarnos para informarte más sobre nuestra escuela taller?</h1>
-        <h2>¡Agenda una reunión informativa con nosotros!</h2><br>
+    <div class="mx-auto w-full max-w-7xl px-4 md:px-8 lg:px-12 py-6 space-y-8">
+        <section class="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 md:p-8 space-y-4 text-center">
+            <div class="flex flex-col items-center gap-3">
+                <img :src="logoSemillas" alt="Semillas Escuela Taller" class="h-20 w-auto object-contain md:h-24" />
+                <h1 class="title-sub text-3xl md:text-5xl">¿Deseas visitarnos para informarte más sobre nuestra escuela taller?</h1>
+                <h2 class="font-comfortaa text-xl md:text-2xl font-medium text-primary">¡Agenda una reunión informativa con nosotros!</h2>
+            </div>
 
-        En esta reunión, se abordarán varios aspectos de la Escuela; talleres, la granja, salidas, costos, alimentación,
-        entre otras. Es preciso que cuenten con disponibilidad de 1 hora aproximadamente.
-        <br>Nota: Es importante que las niñas y niños, también asistan para conocer el espacio, para ello, deben venir
-        con un/a acompañante que pueda asistirles. Sabemos que por el carácter informativo de la reunión, las niñas y
-        niños pueden querer apartarse de ella, ya sea porque les llamó la atención un espacio, quisieron ir al baño, o
-        se quedaron interactuando con otras niñas y niños.
+            <p class="font-comfortaa text-base text-gray-800 max-w-4xl mx-auto">
+                En esta reunión, se abordarán varios aspectos de la Escuela: talleres, la granja, salidas, costos, alimentación,
+                entre otras. Es preciso que cuenten con disponibilidad de 1 hora aproximadamente.
+                <br><br>
+                Nota: Es importante que las niñas y niños también asistan para conocer el espacio. Deben venir con un/a acompañante
+                que pueda asistirles. Sabemos que por el carácter informativo de la reunión, las niñas y niños pueden querer apartarse
+                de ella, ya sea porque les llamó la atención un espacio, quisieron ir al baño o se quedaron interactuando con otras
+                niñas y niños.
+                <br><br>
+                Dirección: Calle 22C #28-10.
+            </p>
+        </section>
 
-        Dirección: Calle 22C #28-10.
+        <section class="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 md:p-8">
+            <form action="" @submit.prevent="onSubmit" class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <BaseInput v-model="motherName" label="Nombre de la madre" required labelPosition="above" />
 
-    </div>
-    <div>
-        <form action="">
-            <label for="motherName">Nombre de la madre</label>
-            <input type="text" name="motherName" id="motherName" v-model="motherName">
-            <br>
+                <BaseInput v-model="fatherName" label="Nombre del padre" labelPosition="above" />
 
-            <label for="fathername">Nombre del padre</label>
-            <input type="text" name="fatherName" id="fatherName" v-model="fatherName">
-            <br>
+                <BaseInput v-model="email" label="Correo electrónico" type="email" labelPosition="above" />
 
-            <label for="email">Correo electrónico</label>
-            <input type="email" name="email" id="email" v-model="email">
-            <br>
+                <BaseInput v-model="phoneNumber" label="Número de celular" type="tel" labelPosition="above" />
 
-            <label for="phoneNumber">Número de celular</label>
-            <input type="tel" name="phoneNumber" id="phoneNumber" v-model="phoneNumber">
-            <br>
+                <BaseInput v-model="childName" label="Nombre del niño o la niña" labelPosition="above" />
 
-            <label for="childName">Nombre del niño o la niña</label>
-            <input type="text" name="childName" id="childName" v-model="childName">
-            <br>
+                <BaseInput v-model="childAge" label="Edad" labelPosition="above" />
 
-            <label for="childAge">Edad</label>
-            <input type="text" name="childAge" id="childAge" v-model="childAge">
-            <br>
+                <BaseInput v-model="heardAboutUs" label="¿Cómo te enteraste de nosotros?" labelPosition="above" />
 
-            <label for="heardAboutUs">¿Cómo te enteraste de nosotros?</label>
-            <input type="text" name="heardAboutUs" id="heardAboutUs" v-model="heardAboutUs">
-            <br>
+                <div class="space-y-2 md:col-span-2">
+                    <label for="interviewDate" class="block text-sm font-medium text-gray-700">Selecciona la fecha y hora en la que asistirás</label>
+                    <select id="interviewDate" name="interviewDate" v-model="interviewDate" class="panel-input rounded-xl w-full">
+                        <option disabled value="">Selecciona una opción</option>
+                        <option value="2026-05-25 08:00">25 Mayo - 8:00 AM</option>
+                        <option value="2026-05-25 10:00">25 Mayo - 10:00 AM</option>
+                    </select>
+                </div>
 
-            <label for="interviewDate">
-                Selecciona la fecha y hora en la que asistirás
-            </label>
-            <select id="interviewDate" name="interviewDate" v-model="interviewDate">
-                <option disabled value="">
-                    Selecciona una opción
-                </option>
-
-                <option value="2026-05-25 08:00">
-                    25 Mayo - 8:00 AM
-                </option>
-
-                <option value="2026-05-25 10:00">
-                    25 Mayo - 10:00 AM
-                </option>
-            </select>
-
-            <br>
-
-            <button>Agendar Visita</button>
-
-        </form>
-
+                <div class="md:col-span-2 pt-2">
+                    <BaseButton type="submit">Agendar Visita</BaseButton>
+                </div>
+            </form>
+        </section>
     </div>
 </template>
 <script setup lang="ts">
 import { ref, type Ref } from 'vue'
+import BaseInput from '@/components/ui/BaseInput.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import logoSemillas from '@/assets/logo_semillas.svg'
 
 const motherName: Ref<string> = ref('')
 const fatherName: Ref<string> = ref('')
@@ -79,6 +66,11 @@ const childName: Ref<string> = ref('')
 const childAge: Ref<string> = ref('')
 const heardAboutUs: Ref<string> = ref('')
 const interviewDate = ref("")
+
+const onSubmit = () => {
+    // Aquí puedes llamar a la API o manejar el envío del formulario
+    console.log('Agendado', { motherName: motherName.value, fatherName: fatherName.value, email: email.value, phoneNumber: phoneNumber.value, childName: childName.value, interviewDate: interviewDate.value })
+}
 
 </script>
 <style lang="">

@@ -8,6 +8,10 @@ export default {
         accent: "#ffa44f",
         base: "#eefeff",
       },
+      fontFamily: {
+        amatic: ['"Amatic SC"', 'cursive'],
+        comfortaa: ['Comfortaa', 'sans-serif'],
+      },
     },
   },
 };
