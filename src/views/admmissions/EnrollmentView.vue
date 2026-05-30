@@ -8,24 +8,19 @@
             <p class="font-comfortaa text-base text-gray-800 mb-4 max-w-4xl mx-auto text-center">
                 ¡Gracias por preferirnos! A continuación encontrarás los datos necesarios para la formalización de la matrícula. Por favor diligenciar todos los datos y verificar su veracidad.
             </p>
-
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <BaseInput v-model="inDate" label="Fecha de ingreso" type="date" />
-                <BaseInput v-model="outDate" label="Fecha de retiro" type="date" />
-            </div>
         </section>
 
         <section class="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div class="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 md:p-8 space-y-4">
                 <h2 class="title-sub text-3xl md:text-3xl">Datos del estudiante</h2>
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <BaseInput v-model="childName" label="Nombres" />
-                    <BaseInput v-model="childLastName" label="Apellidos" />
-                    <BaseInput v-model="birthDate" label="Fecha de nacimiento" type="date" />
-                    <BaseInput v-model="address" label="Dirección" />
-                    <BaseInput v-model="neighborhood" label="Barrio" />
-                    <BaseInput v-model="stratum" label="Estrato" />
-                    <BaseInput v-model="childAge" label="Edad actual" />
+                    <BaseInput v-model="childName" label="Nombres" labelPosition="above" />
+                    <BaseInput v-model="childLastName" label="Apellidos" labelPosition="above" />
+                    <BaseInput v-model="birthDate" label="Fecha de nacimiento" type="date" labelPosition="above" />
+                    <BaseInput v-model="address" label="Dirección" labelPosition="above" />
+                    <BaseInput v-model="neighborhood" label="Barrio" labelPosition="above" />
+                    <BaseInput v-model="stratum" label="Estrato" labelPosition="above" />
+                    <BaseInput v-model="childAge" label="Edad actual" labelPosition="above" />
                 </div>
 
                 <div>
@@ -68,14 +63,14 @@
                 <div class="space-y-4">
                     <h3 class="text-xl font-medium text-primary">Datos del padre</h3>
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <BaseInput v-model="fatherName" label="Nombre del padre" />
-                        <BaseInput v-model="fatherBirthDate" label="Fecha de nacimiento" type="date" />
-                        <BaseInput v-model="fatherBirthPlace" label="Lugar de nacimiento" />
-                        <BaseInput v-model="fatherId" label="Documento de identidad" />
-                        <BaseInput v-model="fatherCompany" label="Nombre de la empresa de trabajo" />
-                        <BaseInput v-model="fatherOccupation" label="Ocupación" />
-                        <BaseInput v-model="fatherCell" label="Celular" type="tel" />
-                        <BaseInput v-model="fatherEmail" label="Correo electrónico" type="email" />
+                        <BaseInput v-model="fatherName" label="Nombre del padre" labelPosition="above" />
+                        <BaseInput v-model="fatherBirthDate" label="Fecha de nacimiento" type="date" labelPosition="above" />
+                        <BaseInput v-model="fatherBirthPlace" label="Lugar de nacimiento" labelPosition="above" />
+                        <BaseInput v-model="fatherId" label="Documento de identidad" labelPosition="above" />
+                        <BaseInput v-model="fatherCompany" label="Nombre de la empresa de trabajo" labelPosition="above" />
+                        <BaseInput v-model="fatherOccupation" label="Ocupación" labelPosition="above" />
+                        <BaseInput v-model="fatherCell" label="Celular" type="tel" labelPosition="above" />
+                        <BaseInput v-model="fatherEmail" label="Correo electrónico" type="email" labelPosition="above" />
                     </div>
                 </div>
 
@@ -102,11 +97,11 @@
                 <p class="font-comfortaa text-base text-gray-800">Ten en cuenta que el acudiente debe ser diferente a los padres.</p>
 
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <BaseInput v-model="guardianName" label="Nombre del acudiente" />
-                    <BaseInput v-model="guardianKinship" label="Parentesco" />
-                    <BaseInput v-model="guardianCell" label="Celular" type="tel" />
-                    <BaseInput v-model="guardianPhone" label="Teléfono fijo" type="tel" />
-                    <BaseInput v-model="guardianEmail" label="Correo Electrónico" type="email" />
+                    <BaseInput v-model="guardianName" label="Nombre del acudiente" labelPosition="above" />
+                    <BaseInput v-model="guardianKinship" label="Parentesco" labelPosition="above" />
+                    <BaseInput v-model="guardianCell" label="Celular" type="tel" labelPosition="above" />
+                    <BaseInput v-model="guardianPhone" label="Teléfono fijo" type="tel" labelPosition="above" />
+                    <BaseInput v-model="guardianEmail" label="Correo Electrónico" type="email" labelPosition="above" />
                 </div>
             </div>
 
@@ -114,10 +109,10 @@
                 <h2 class="title-sub text-3xl md:text-3xl">Responsable de pagos</h2>
 
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <BaseInput v-model="payerName" label="Nombre responsable de pagos" />
-                    <BaseInput v-model="payerCell" label="Celular" type="tel" />
-                    <BaseInput v-model="payerPhone" label="Teléfono fijo" type="tel" />
-                    <BaseInput v-model="payerEmail" label="Correo Electrónico" type="email" />
+                    <BaseInput v-model="payerName" label="Nombre responsable de pagos" labelPosition="above" />
+                    <BaseInput v-model="payerCell" label="Celular" type="tel" labelPosition="above" />
+                    <BaseInput v-model="payerPhone" label="Teléfono fijo" type="tel" labelPosition="above" />
+                    <BaseInput v-model="payerEmail" label="Correo Electrónico" type="email" labelPosition="above" />
                 </div>
             </div>
         </section>
@@ -213,8 +208,7 @@ import { ref, type Ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 
-const inDate: Ref<string> = ref('')
-const outDate: Ref<string> = ref('')
+
 const childName: Ref<string> = ref('')
 const childLastName: Ref<string> = ref('')
 const birthDate: Ref<string> = ref('')
