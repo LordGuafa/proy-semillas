@@ -139,7 +139,7 @@ onMounted(() => {
             :total="filteredStudents.length"
             empty-message="No hay estudiantes para mostrar."
             actions-label="Acciones"
-            @row-click="openEditModal"
+            @row-click="(row) => openEditModal(row as Student)"
         >
             <template #cell-photo="{ row }">
                 <div class="flex items-center justify-center">
