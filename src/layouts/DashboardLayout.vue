@@ -1,7 +1,7 @@
 <template>
 
     <div>
-        <div class="nav-bar">
+           <div class="nav-bar">
              <AuxBar/>
         </div>
 
@@ -16,6 +16,7 @@
 <script setup lang="ts">
 import AuxBar from '@/components/AuxBar.vue'
 import SideBar from '@/components/SideBar.vue'
+import Header from '@/components/Header.vue'
 
 
 </script>

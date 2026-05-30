@@ -8,12 +8,15 @@ import FormularioView from "@/views/admin/FormularioView.vue";
 import AspirantesView from "@/views/admin/AspirantesView.vue";
 import GruposView from "@/views/admin/GruposView.vue";
 import ExalumnosView from "@/views/admin/ExalumnosView.vue";
+import LandingHome from "@/views/landing/HomeView.vue";
+import AdmissionsView from "@/views/admmissions/AdmissionsView.vue";
+import EnrollmentView from "@/views/admmissions/EnrollmentView.vue";
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: "/",
-      redirect: "/login",
+      redirect: "/home",
     },
     {
       path: "/login",
@@ -58,7 +61,24 @@ const router = createRouter({
         },
       ],
     },
+    {
+      path: "/home",
+      name: "home",
+      component: LandingHome,
+    },
     { path: "/:pathMatch(.*)*", redirect: "/login" },
+    {
+      path: "/admisiones",
+      name: "admissions",
+      component: AdmissionsView,
+      meta: { requiresAuth: false, title: "Admissions" },
+    },
+    {
+      path: "/inscripciones-matricula",
+      name: "enrollment",
+      component: EnrollmentView,
+      meta: { requiresAuth: false, title: "Enrollment" },
+    }
   ],
 });
 
