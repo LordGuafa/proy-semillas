@@ -3,10 +3,10 @@ import { useAuthStore } from "@/stores/authStore";
 import { setApiRouter } from "@/services/api";
 import AdminLayout from "@/layouts/AdminLayout.vue";
 import LoginView from "@/views/admin/LoginView.vue";
-import StudentsView from "@/views/admin/StudentsView.vue";
+import StudentsView from "@/views/EstudiantesView.vue";
 import FormularioView from "@/views/admin/FormularioView.vue";
 import AspirantesView from "@/views/admin/AspirantesView.vue";
-import GruposView from "@/views/admin/GruposView.vue";
+import MatriculasView from "@/views/MatriculasView.vue";
 import ExalumnosView from "@/views/admin/ExalumnosView.vue";
 import LandingHome from "@/views/landing/HomeView.vue";
 import AdmissionsView from "@/views/admmissions/AdmissionsView.vue";
@@ -48,10 +48,10 @@ const router = createRouter({
           meta: { title: "Estudiantes" },
         },
         {
-          path: "grupos",
-          name: "grupos",
-          component: GruposView,
-          meta: { title: "Grupos" },
+          path: "matriculas",
+          name: "matriculas",
+          component: MatriculasView,
+          meta: { title: "Matrículas" },
         },
         {
           path: "exalumnos",
@@ -78,7 +78,7 @@ const router = createRouter({
       name: "enrollment",
       component: EnrollmentView,
       meta: { requiresAuth: false, title: "Enrollment" },
-    }
+    },
   ],
 });
 

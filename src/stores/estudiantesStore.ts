@@ -163,6 +163,26 @@ function cloneStudent(student: Student): Student {
   return { ...student };
 }
 
+function mergeStudent(
+  existing: Student | undefined,
+  next: Partial<Student> & { id: number },
+): Student {
+  const base = existing ?? {
+    id: next.id,
+    firstname: "",
+    lastname: "",
+    homeAddress: "",
+    city: undefined,
+    department: undefined,
+    strata: undefined,
+    hasLunch: false,
+    hasTransport: false,
+    status: "ASPIRANTE" as Student["status"],
+    photoURL: undefined,
+  };
+  return cloneStudent({ ...base, ...next, id: next.id } as Student);
+}
+
 export const useEstudiantesStore = defineStore("estudiantes", {
   state: () => {
     const persisted = readJSON<LegacyStudentRecord[]>(storageKey, []);
@@ -385,6 +405,25 @@ export const useEstudiantesStore = defineStore("estudiantes", {
       );
       this.persistStudents();
       await estudiantesService.delete(id);
+    },
+    upsertEstudiante(student: Partial<Student> & { id: number }) {
+      const normalizedStudent = mergeStudent(
+        this.estudiantes.find(
+          (existingStudent) => existingStudent.id === student.id,
+        ),
+        student,
+      );
+      this.estudiantes = this.estudiantes.some(
+        (existingStudent) => existingStudent.id === student.id,
+      )
+        ? this.estudiantes.map((existingStudent) =>
+            existingStudent.id === student.id
+              ? normalizedStudent
+              : existingStudent,
+          )
+        : [normalizedStudent, ...this.estudiantes];
+      this.persistStudents();
+      return normalizedStudent;
     },
     async fetchGuardians(studentId: number) {
       // Cache guard: if we already have guardians for this student, return cached

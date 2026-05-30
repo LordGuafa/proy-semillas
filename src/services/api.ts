@@ -215,4 +215,79 @@ export const gruposService = {
   },
 };
 
+export const matriculasService = {
+  async getAll(params: ApiRecord = {}) {
+    if (remoteEnabled()) return (await api.get("/matriculas", { params })).data;
+    const current = readList<ApiRecord>("semillas-matriculas", []);
+    const search = String(params.search ?? "")
+      .trim()
+      .toLowerCase();
+    const status = String(params.status ?? "").trim();
+    const dateFrom = String(params.dateFrom ?? "").trim();
+    const dateTo = String(params.dateTo ?? "").trim();
+    const page = Number(params.page ?? 1) || 1;
+    const perPage = Number(params.perPage ?? 10) || 10;
+    const filtered = current.filter((item) => {
+      const studentData = (item.studentData as Record<string, unknown>) ?? {};
+      const fullName =
+        `${String(studentData.firstname ?? studentData.firstName ?? "")} ${String(studentData.lastname ?? studentData.lastName ?? "")}`
+          .trim()
+          .toLowerCase();
+      const submittedAt = String(item.submittedAt ?? "");
+      const matchesSearch = !search || fullName.includes(search);
+      const matchesStatus = !status || String(item.status ?? "") === status;
+      const matchesFrom = !dateFrom || submittedAt >= dateFrom;
+      const matchesTo = !dateTo || submittedAt <= dateTo;
+      return matchesSearch && matchesStatus && matchesFrom && matchesTo;
+    });
+    const start = (page - 1) * perPage;
+    return {
+      items: filtered.slice(start, start + perPage),
+      pagination: { page, perPage, total: filtered.length },
+    };
+  },
+  async getById(id: string | number) {
+    if (remoteEnabled()) return (await api.get(`/matriculas/${id}`)).data;
+    return (
+      readList<ApiRecord>("semillas-matriculas", []).find(
+        (item) => String(item.id) === String(id),
+      ) ?? null
+    );
+  },
+  async updateStatus(id: string | number, payload: ApiRecord) {
+    if (remoteEnabled())
+      return (await api.patch(`/matriculas/${id}/status`, payload)).data;
+    const current = readList<ApiRecord>("semillas-matriculas", []);
+    const next = current.map((item) =>
+      String(item.id) === String(id) ? { ...item, ...payload } : item,
+    );
+    writeJSON("semillas-matriculas", next);
+    return next.find((item) => String(item.id) === String(id)) ?? null;
+  },
+  async assignInterview(id: string | number, payload: ApiRecord) {
+    if (remoteEnabled())
+      return (await api.patch(`/matriculas/${id}/interview`, payload)).data;
+    const current = readList<ApiRecord>("semillas-matriculas", []);
+    const next = current.map((item) =>
+      String(item.id) === String(id)
+        ? { ...item, ...payload, status: "ENTREVISTA" }
+        : item,
+    );
+    writeJSON("semillas-matriculas", next);
+    return next.find((item) => String(item.id) === String(id)) ?? null;
+  },
+  async approve(id: string | number) {
+    if (remoteEnabled())
+      return (await api.post(`/matriculas/${id}/approve`)).data;
+    const current = readList<ApiRecord>("semillas-matriculas", []);
+    const next = current.map((item) =>
+      String(item.id) === String(id)
+        ? { ...item, status: "APROBADA", studentId: Date.now() }
+        : item,
+    );
+    writeJSON("semillas-matriculas", next);
+    return next.find((item) => String(item.id) === String(id)) ?? null;
+  },
+};
+
 export default api;

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
-import { ArchiveBoxIcon, ClipboardDocumentListIcon, DocumentTextIcon, RectangleGroupIcon, UserGroupIcon } from '@heroicons/vue/24/outline'
+import { ArchiveBoxIcon, ClipboardDocumentCheckIcon, ClipboardDocumentListIcon, DocumentTextIcon, UserGroupIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '@/stores/authStore'
 
 const router = useRouter()
@@ -12,7 +12,7 @@ const navigation = [
     { name: 'Formulario', to: '/admin/formulario', icon: DocumentTextIcon },
     { name: 'Aspirantes', to: '/admin/aspirantes', icon: ClipboardDocumentListIcon },
     { name: 'Estudiantes', to: '/admin/estudiantes', icon: UserGroupIcon },
-    { name: 'Grupos', to: '/admin/grupos', icon: RectangleGroupIcon },
+    { name: 'Matrículas', to: '/admin/matriculas', icon: ClipboardDocumentCheckIcon },
     { name: 'Exalumnos', to: '/admin/exalumnos', icon: ArchiveBoxIcon },
 ]
 
