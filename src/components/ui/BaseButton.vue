@@ -12,6 +12,7 @@ const props = withDefaults(
     icon?: Component;
     block?: boolean;
     type?: "button" | "submit" | "reset";
+    disabled?: boolean;
     ariaLabel?: string;
   }>(),
   {
@@ -19,7 +20,8 @@ const props = withDefaults(
     size: "md",
     loading: false,
     block: false,
-    type: "button",
+      type: "button",
+      disabled: false,
   },
 );
 const sizeClasses = {
@@ -46,7 +48,7 @@ const classes = computed(() => [
     :type="type"
     :class="classes"
     :aria-label="ariaLabel"
-    :disabled="loading"
+    :disabled="loading || props.disabled"
   >
     <span
       v-if="loading"

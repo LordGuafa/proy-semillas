@@ -2,8 +2,11 @@
 import { computed } from 'vue'
 
 type TableColumn = { key: string; label: string; sortable?: boolean }
-const props = withDefaults(defineProps<{ columns: TableColumn[]; rows: Array<Record<string, any>>; loading?: boolean; emptyMessage?: string; page?: number; perPage?: number; total?: number }>(), { loading: false, emptyMessage: 'No hay datos disponibles.', page: 1, perPage: 10, total: 0 })
-const emit = defineEmits<{ (event: 'update:page', value: number): void }>()
+const props = withDefaults(defineProps<{ columns: TableColumn[]; rows: Array<Record<string, any>>; loading?: boolean; emptyMessage?: string; page?: number; perPage?: number; total?: number; actionsLabel?: string }>(), { loading: false, emptyMessage: 'No hay datos disponibles.', page: 1, perPage: 10, total: 0, actionsLabel: 'Acciones' })
+const emit = defineEmits<{
+    (event: 'update:page', value: number): void
+    (event: 'row-click', row: Record<string, any>): void
+}>()
 const totalPages = computed(() => Math.max(1, Math.ceil((props.total || props.rows.length) / (props.perPage || 1))))
 function goToPage(nextPage: number) { if (nextPage < 1 || nextPage > totalPages.value) return; emit('update:page', nextPage) }
 function formatValue(value: unknown): string { if (value === null || value === undefined || value === '') return '—'; if (value instanceof Date) return value.toLocaleDateString('es-CO'); if (typeof value === 'object') return JSON.stringify(value); return String(value) }
@@ -18,6 +21,8 @@ function formatValue(value: unknown): string { if (value === null || value === u
                         <th v-for="column in columns" :key="column.key" scope="col"
                             class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">{{ column.label }}
                         </th>
+                        <th v-if="$slots.actions" scope="col"
+                            class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">{{ actionsLabel }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -30,7 +35,12 @@ function formatValue(value: unknown): string { if (value === null || value === u
                             emptyMessage }}</td>
                     </tr>
                     <tr v-for="(row, rowIndex) in rows" :key="String(row.id ?? rowIndex)"
-                        class="odd:bg-white even:bg-gray-50 hover:bg-primary/5">
+                        class="odd:bg-white even:bg-gray-50 hover:bg-primary/5 cursor-pointer"
+                        role="button"
+                        tabindex="0"
+                        @click="$emit('row-click', row)"
+                        @keydown.enter.prevent="$emit('row-click', row)"
+                        @keydown.space.prevent="$emit('row-click', row)">
                         <td v-for="column in columns" :key="column.key" class="px-4 py-4 text-sm text-gray-700">
                             <slot :name="`cell-${column.key}`" :row="row" :value="row[column.key]" :column="column">{{
                                 formatValue(row[column.key]) }}</slot>

@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
-const props = withDefaults(defineProps<{ open: boolean; title?: string; size?: 'sm' | 'md' | 'lg' }>(), { title: '', size: 'md' })
+const props = withDefaults(defineProps<{ open: boolean; title?: string; size?: 'sm' | 'md' | 'lg'; zIndexClass?: string }>(), { title: '', size: 'md', zIndexClass: 'z-50' })
 const emit = defineEmits<{ (event: 'close'): void }>()
 const modalRef = ref<HTMLElement | null>(null)
+let previousActiveElement: HTMLElement | null = null
 const sizeClasses = { sm: 'max-w-md', md: 'max-w-2xl', lg: 'max-w-5xl' }
 
 function focusFirstElement() {
@@ -24,9 +25,34 @@ function handleKeydown(event: KeyboardEvent) {
     else if (!event.shiftKey && document.activeElement === lastElement) { event.preventDefault(); firstElement.focus() }
 }
 
-watch(() => props.open, (isOpen) => { if (isOpen) focusFirstElement() })
-onMounted(() => { window.addEventListener('keydown', handleKeydown); if (props.open) focusFirstElement() })
-onBeforeUnmount(() => { window.removeEventListener('keydown', handleKeydown) })
+watch(
+    () => props.open,
+    (isOpen) => {
+        if (isOpen) {
+            // save previously focused element to restore focus when modal closes
+            previousActiveElement = document.activeElement as HTMLElement | null
+            focusFirstElement()
+        } else {
+            // restore focus to previously focused element, if present
+            if (previousActiveElement && typeof previousActiveElement.focus === 'function') {
+                window.requestAnimationFrame(() => previousActiveElement?.focus())
+            }
+            previousActiveElement = null
+        }
+    },
+)
+
+onMounted(() => {
+    window.addEventListener('keydown', handleKeydown)
+    if (props.open) {
+        previousActiveElement = document.activeElement as HTMLElement | null
+        focusFirstElement()
+    }
+})
+
+onBeforeUnmount(() => {
+    window.removeEventListener('keydown', handleKeydown)
+})
 </script>
 
 <template>
@@ -34,7 +60,8 @@ onBeforeUnmount(() => { window.removeEventListener('keydown', handleKeydown) })
         <Transition enter-active-class="motion-safe:transition motion-safe:duration-200" enter-from-class="opacity-0"
             enter-to-class="opacity-100" leave-active-class="motion-safe:transition motion-safe:duration-150"
             leave-from-class="opacity-100" leave-to-class="opacity-0">
-            <div v-if="open" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6"
+            <div v-if="open" class="fixed inset-0 flex items-center justify-center bg-black/50 px-4 py-6"
+                :class="zIndexClass"
                 role="presentation" @click.self="emit('close')">
                 <Transition enter-active-class="motion-safe:transition motion-safe:duration-200"
                     enter-from-class="scale-95 opacity-0" enter-to-class="scale-100 opacity-100"

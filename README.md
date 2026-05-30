@@ -40,3 +40,23 @@ npm run dev
 ```sh
 npm run build
 ```
+
+## Docker
+
+La aplicación puede ejecutarse en un contenedor con Nginx para probarla de forma consistente.
+
+### Build local de la imagen
+
+```sh
+docker build --build-arg VITE_API_URL=http://localhost:3000 -t portal-semillas .
+```
+
+### Ejecutar con Docker Compose
+
+```sh
+VITE_API_URL=http://localhost:3000 docker compose up --build
+```
+
+La app quedará disponible en `http://localhost:8080`.
+
+Si no defines `VITE_API_URL`, el frontend funcionará en modo local con almacenamiento en navegador.

@@ -14,13 +14,27 @@ onBeforeUnmount(() => window.clearTimeout(timeoutId))
 </script>
 
 <template>
-    <div class="relative">
-        <MagnifyingGlassIcon
-            class="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-        <input v-model="value" type="search" :placeholder="placeholder" aria-label="Buscar"
-            class="panel-input pl-11 pr-11" />
-        <button v-if="value" type="button"
-            class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-2 py-1 text-xs text-gray-500 transition hover:bg-gray-100 hover:text-gray-800"
-            aria-label="Limpiar búsqueda" @click="clearSearch">X</button>
+  <div class="relative">
+    <div class="pointer-events-none absolute inset-y-0 left-3 flex h-12 items-center">
+      <MagnifyingGlassIcon class="block h-4 w-4 text-gray-400" />
     </div>
+
+    <input
+      v-model="value"
+      type="search"
+      :placeholder="placeholder"
+      aria-label="Buscar"
+      class="panel-input h-12 pl-10 pr-11"
+    />
+
+    <button
+      v-if="value"
+      type="button"
+      class="absolute inset-y-0 right-3 flex h-12 items-center rounded-full px-2 py-1 text-xs text-gray-500 transition hover:bg-gray-100 hover:text-gray-800"
+      aria-label="Limpiar búsqueda"
+      @click="clearSearch"
+    >
+      X
+    </button>
+  </div>
 </template>

@@ -9,5 +9,5 @@ export default interface Student {
   hasLunch: boolean;
   hasTransport: boolean;
   status: "ASPIRANTE" | "ACTIVO" | "RETIRADO" | "EGRESADO";
-  photoURL: string;
+  photoURL?: string;
 }

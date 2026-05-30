@@ -14,6 +14,7 @@ export default interface Guardian{
     placeOfBirth?: string,
     documentType: string,
     documentNumber: string,
-
+    isMainGuardian: boolean,
+    isPaymentResponsible: boolean,
 
 }

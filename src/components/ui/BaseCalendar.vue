@@ -111,27 +111,30 @@ function nextMonth() {
     >
       <span v-for="weekday in weekdays" :key="weekday">{{ weekday }}</span>
     </div>
-    <div class="mt-3 grid grid-cols-7 gap-2">
-      <div v-for="(day, index) in monthDays" :key="index" class="aspect-square">
-        <button
-          v-if="day"
-          type="button"
-          class="flex h-full w-full items-center justify-center rounded-full text-sm transition"
-          :class="[
-            normalize(day) === selectedDay
-              ? 'bg-primary text-white'
-              : 'bg-white text-gray-700 hover:bg-primary/10',
-            normalize(day) === today ? 'ring-2 ring-primary ring-offset-2' : '',
-            isDisabled(day)
-              ? 'cursor-not-allowed opacity-40 hover:bg-white'
-              : '',
-          ]"
-          :disabled="isDisabled(day)"
-          @click="selectDate(day)"
-        >
-          {{ day.getDate() }}
-        </button>
+      <div class="mt-3 grid grid-cols-7 gap-2">
+        <div v-for="(day, index) in monthDays" :key="index" class="aspect-square">
+          <button
+            v-if="day"
+            type="button"
+            class="flex h-full w-full items-center justify-center rounded-full text-sm transition"
+            :class="[
+              normalize(day) === selectedDay
+                ? 'bg-primary text-white'
+                : 'bg-white text-gray-700 hover:bg-primary/10',
+              normalize(day) === today ? 'ring-2 ring-primary ring-offset-2' : '',
+              isDisabled(day)
+                ? 'cursor-not-allowed opacity-40 hover:bg-white'
+                : '',
+            ]"
+            :disabled="isDisabled(day)"
+            :aria-disabled="isDisabled(day) ? 'true' : 'false'"
+            :aria-label="`día ${day.getDate()} de ${currentMonth.toLocaleDateString('es-CO', { month: 'long' })}`"
+            @click="selectDate(day)"
+          >
+            {{ day.getDate() }}
+          </button>
+          <div v-else aria-hidden="true" class="h-full w-full" />
+        </div>
       </div>
-    </div>
   </div>
 </template>

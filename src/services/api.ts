@@ -1,6 +1,8 @@
 import axios from "axios";
 import type { Router } from "vue-router";
 import { readJSON, writeJSON } from "@/utils/storage";
+import type { Campo, FormularioTipo } from "@/types/formulario";
+import type Guardian from "@/types/guardian";
 
 type ApiRecord = Record<string, unknown>;
 
@@ -77,6 +79,57 @@ export const estudiantesService = {
     writeJSON("semillas-students", next);
     return next;
   },
+  async getGuardians(studentId: string | number) {
+    if (remoteEnabled())
+      return (await api.get(`/estudiantes/${studentId}/guardians`)).data;
+    return readList<Guardian>(`semillas-guardians-${studentId}`, []);
+  },
+  async createGuardian(studentId: string | number, payload: ApiRecord) {
+    if (remoteEnabled())
+      return (await api.post(`/estudiantes/${studentId}/guardians`, payload))
+        .data;
+    const key = `semillas-guardians-${studentId}`;
+    const current = readList<ApiRecord>(key, []);
+    const next = [{ ...payload, id: payload.id ?? Date.now() }, ...current];
+    writeJSON(key, next);
+    return next;
+  },
+  async updateGuardian(
+    studentId: string | number,
+    guardianId: string | number,
+    payload: ApiRecord,
+  ) {
+    if (remoteEnabled())
+      return (
+        await api.put(
+          `/estudiantes/${studentId}/guardians/${guardianId}`,
+          payload,
+        )
+      ).data;
+    const key = `semillas-guardians-${studentId}`;
+    const current = readList<ApiRecord>(key, []);
+    const next = current.map((item) =>
+      String(item.id) === String(guardianId) ? { ...item, ...payload } : item,
+    );
+    writeJSON(key, next);
+    return next;
+  },
+  async deleteGuardian(
+    studentId: string | number,
+    guardianId: string | number,
+  ) {
+    if (remoteEnabled())
+      return (
+        await api.delete(`/estudiantes/${studentId}/guardians/${guardianId}`)
+      ).data;
+    const key = `semillas-guardians-${studentId}`;
+    const current = readList<ApiRecord>(key, []);
+    const next = current.filter(
+      (item) => String(item.id) !== String(guardianId),
+    );
+    writeJSON(key, next);
+    return next;
+  },
 };
 
 export const aspirantesService = {
@@ -103,10 +156,28 @@ export const aspirantesService = {
 
 export const formularioService = {
   async getFields() {
-    if (remoteEnabled()) return (await api.get("/formulario/campos")).data;
-    return readJSON("semillas-form-fields", []);
+    return formularioService.getByType("ENTREVISTA");
   },
   async saveFields(fields: ApiRecord[]) {
+    return formularioService.saveByType(
+      "ENTREVISTA",
+      fields as unknown as Campo[],
+    );
+  },
+  async getByType(tipo: FormularioTipo) {
+    if (remoteEnabled()) return (await api.get(`/formularios/${tipo}`)).data;
+    return readJSON<Campo[]>(`semillas-formularios-${tipo}`, []);
+  },
+  async saveByType(tipo: FormularioTipo, fields: Campo[]) {
+    if (remoteEnabled())
+      return (await api.put(`/formularios/${tipo}`, { campos: fields })).data;
+    writeJSON(`semillas-formularios-${tipo}`, fields);
+    return fields;
+  },
+  async getLegacyFields() {
+    return readJSON("semillas-form-fields", []);
+  },
+  async saveLegacyFields(fields: ApiRecord[]) {
     if (remoteEnabled())
       return (await api.put("/formulario/campos", { fields })).data;
     writeJSON("semillas-form-fields", fields);

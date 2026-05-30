@@ -1,8 +1,10 @@
 import { defineStore } from "pinia";
 import { formularioService } from "@/services/api";
 import { readJSON, writeJSON } from "@/utils/storage";
+import type { Campo, FormularioTipo } from "@/types/formulario";
 
-export type FormField = {
+type FormularioState = Record<FormularioTipo, Campo[]>;
+type LegacyCampo = {
   id: string;
   label: string;
   type: "text" | "select" | "date" | "number";
@@ -11,104 +13,200 @@ export type FormField = {
   order: number;
 };
 
-const storageKey = "semillas-form-fields";
-const defaultFields: FormField[] = [
-  {
-    id: "fullName",
-    label: "Nombre completo",
-    type: "text",
-    required: true,
-    visible: true,
-    order: 1,
-  },
-  {
-    id: "birthDate",
-    label: "Fecha de nacimiento",
-    type: "date",
-    required: true,
-    visible: true,
-    order: 2,
-  },
-  {
-    id: "guardianName",
-    label: "Nombre del acudiente",
-    type: "text",
-    required: true,
-    visible: true,
-    order: 3,
-  },
-  {
-    id: "phone",
-    label: "Teléfono de contacto",
-    type: "text",
-    required: true,
-    visible: true,
-    order: 4,
-  },
-  {
-    id: "previousSchool",
-    label: "Colegio o jardín anterior",
-    type: "text",
-    required: false,
-    visible: true,
-    order: 5,
-  },
-];
+const storageKey = "semillas-formularios";
 
-function normalize(fields: FormField[]): FormField[] {
-  return [...fields]
+const fixedFields: Record<FormularioTipo, Campo[]> = {
+  ENTREVISTA: [
+    {
+      id: "fotoAspirante",
+      label: "Foto del aspirante",
+      type: "text",
+      required: false,
+      visible: true,
+      order: 1,
+    },
+    {
+      id: "fechaPreferidaEntrevista",
+      label: "Fecha preferida de entrevista",
+      type: "date",
+      required: true,
+      visible: true,
+      order: 2,
+    },
+  ],
+  MATRICULA: [
+    {
+      id: "fotoEstudiante",
+      label: "Foto del estudiante",
+      type: "text",
+      required: false,
+      visible: true,
+      order: 1,
+    },
+    {
+      id: "documentoIdentidad",
+      label: "Documento de identidad",
+      type: "text",
+      required: true,
+      visible: true,
+      order: 2,
+    },
+  ],
+};
+
+function createDefaultState(): FormularioState {
+  return {
+    ENTREVISTA: fixedFields.ENTREVISTA.map((field) => ({ ...field })),
+    MATRICULA: fixedFields.MATRICULA.map((field) => ({ ...field })),
+  };
+}
+
+function createFieldId(): string {
+  return `campo-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function normalizeCampos(campos: Campo[]): Campo[] {
+  return [...campos]
     .sort((a, b) => a.order - b.order)
-    .map((field, index) => ({ ...field, order: index + 1 }));
+    .map((campo, index) => ({ ...campo, order: index + 1 }));
+}
+
+function toCampoList(value: unknown): Campo[] {
+  if (Array.isArray(value)) return value as Campo[];
+  if (value && typeof value === "object" && "campos" in value) {
+    const campos = (value as { campos?: Campo[] }).campos;
+    return Array.isArray(campos) ? campos : [];
+  }
+  return [];
+}
+
+function mergeWithFixed(tipo: FormularioTipo, campos: Campo[]): Campo[] {
+  const dynamicFields = campos.filter(
+    (campo) =>
+      !fixedFields[tipo].some((fixedField) => fixedField.id === campo.id),
+  );
+  const fieldsById = new Map(campos.map((campo) => [campo.id, campo]));
+
+  const mergedFixed = fixedFields[tipo].map((field) => ({
+    ...field,
+    visible: fieldsById.get(field.id)?.visible ?? field.visible,
+  }));
+
+  return normalizeCampos([...mergedFixed, ...dynamicFields]);
+}
+
+function nextFieldOrder(campos: Campo[]): number {
+  return campos.length
+    ? Math.max(...campos.map((campo) => campo.order)) + 1
+    : 1;
 }
 
 export const useFormularioStore = defineStore("formulario", {
   state: () => ({
-    campos: readJSON<FormField[]>(storageKey, defaultFields),
+    formularios: readJSON<FormularioState>(storageKey, createDefaultState()),
+    tipoActivo: "ENTREVISTA" as FormularioTipo,
     loading: false,
+    error: null as string | null,
+    dirty: false,
   }),
+  getters: {
+    camposActivos: (state) => {
+      return [...(state.formularios[state.tipoActivo] ?? [])].sort(
+        (a, b) => a.order - b.order,
+      );
+    },
+  },
   actions: {
-    async fetchCampos() {
+    persistState() {
+      writeJSON(storageKey, this.formularios);
+    },
+    async fetchFormulario(tipo: FormularioTipo) {
       this.loading = true;
+      this.error = null;
       try {
-        const fields = (await formularioService.getFields()) as FormField[];
-        this.campos = normalize(fields?.length ? fields : defaultFields);
-        writeJSON(storageKey, this.campos);
-        return this.campos;
+        const response = await formularioService.getByType(tipo);
+        const campos = toCampoList(response);
+        if (campos.length) {
+          this.formularios[tipo] = mergeWithFixed(tipo, campos);
+        } else if (tipo === "ENTREVISTA") {
+          const legacyCampos = toCampoList(
+            await formularioService.getLegacyFields(),
+          );
+          this.formularios[tipo] = mergeWithFixed(tipo, legacyCampos);
+        } else {
+          this.formularios[tipo] = mergeWithFixed(tipo, []);
+        }
+        this.persistState();
+        this.dirty = false;
+        return this.formularios[tipo];
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        this.error = `Error cargando formulario: ${message}`;
+        throw err;
       } finally {
         this.loading = false;
       }
     },
-    async saveCampos(fields?: FormField[]) {
-      const nextFields = fields ?? this.campos;
-      this.campos = normalize(nextFields);
-      writeJSON(storageKey, this.campos);
-      await formularioService.saveFields(this.campos);
-      return this.campos;
+    async saveFormulario(tipo: FormularioTipo) {
+      this.loading = true;
+      this.error = null;
+      try {
+        const campos = normalizeCampos(this.formularios[tipo] ?? []);
+        this.formularios[tipo] = campos;
+        this.persistState();
+        await formularioService.saveByType(tipo, campos);
+        this.dirty = false;
+        return campos;
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        this.error = `Error guardando formulario: ${message}`;
+        throw err;
+      } finally {
+        this.loading = false;
+      }
     },
-    addCampo() {
-      const nextField: FormField = {
-        id: `campo-${Date.now()}`,
+    setTipoActivo(tipo: FormularioTipo) {
+      this.tipoActivo = tipo;
+    },
+    addCampo(tipo: FormularioTipo) {
+      const nextCampo: Campo = {
+        id: createFieldId(),
         label: "Nuevo campo",
         type: "text",
         required: false,
         visible: true,
-        order: this.campos.length + 1,
+        order: nextFieldOrder(this.formularios[tipo] ?? []),
       };
-      this.campos = normalize([...this.campos, nextField]);
-      writeJSON(storageKey, this.campos);
-      return nextField;
+      this.formularios[tipo] = normalizeCampos([
+        ...(this.formularios[tipo] ?? []),
+        nextCampo,
+      ]);
+      this.persistState();
+      this.dirty = true;
+      return nextCampo;
     },
-    removeCampo(id: string) {
-      this.campos = normalize(this.campos.filter((field) => field.id !== id));
-      writeJSON(storageKey, this.campos);
+    removeCampo(tipo: FormularioTipo, id: string) {
+      this.formularios[tipo] = normalizeCampos(
+        (this.formularios[tipo] ?? []).filter((campo) => campo.id !== id),
+      );
+      this.persistState();
+      this.dirty = true;
     },
-    updateCampo(id: string, data: Partial<FormField>) {
-      this.campos = normalize(
-        this.campos.map((field) =>
-          field.id === id ? { ...field, ...data } : field,
+    updateCampo(tipo: FormularioTipo, id: string, changes: Partial<Campo>) {
+      this.formularios[tipo] = normalizeCampos(
+        (this.formularios[tipo] ?? []).map((campo) =>
+          campo.id === id ? { ...campo, ...changes } : campo,
         ),
       );
-      writeJSON(storageKey, this.campos);
+      this.persistState();
+      this.dirty = true;
+    },
+    reorderCampos(tipo: FormularioTipo, newOrder: Campo[]) {
+      this.formularios[tipo] = normalizeCampos(
+        newOrder.map((campo, index) => ({ ...campo, order: index + 1 })),
+      );
+      this.persistState();
+      this.dirty = true;
     },
   },
 });
