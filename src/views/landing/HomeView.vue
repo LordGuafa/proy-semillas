@@ -96,8 +96,8 @@ const goToWorkshop = () => {
   router.push({ name: 'workshop' })
 }
 
-const scrollToFarm = () => {
-  router.push({ name: 'admissions' })
+const scrollToFarm = async () => {
+  await router.push({ name: 'the-farm' })
 }
 </script>
 

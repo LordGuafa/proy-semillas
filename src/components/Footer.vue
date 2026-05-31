@@ -43,7 +43,7 @@ const contactItems = [
 </script>
 
 <template>
-    <footer class="footer-shell bg-[#86b499] pt-14 pb-6">
+    <footer id="footer" class="footer-shell bg-[#86b499] pt-14 pb-6">
         <div class="footer-sky" aria-hidden="true"></div>
         <div class="footer-mountains" aria-hidden="true">
             <span

@@ -46,6 +46,7 @@
 				>
 					Sobre nosotros
 				</router-link>
+
 			</nav>
 
 			<button
@@ -93,6 +94,7 @@
 					>
 						Talleres
 					</router-link>
+
 			</nav>
 		</div>
 		<div class="cloud-border"></div>
