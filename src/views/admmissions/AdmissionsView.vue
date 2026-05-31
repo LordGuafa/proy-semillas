@@ -7,9 +7,11 @@
                 <h2 class="font-comfortaa text-xl md:text-2xl font-medium text-primary">¡Agenda una reunión informativa con nosotros!</h2>
             </div>
 
-            <p class="font-comfortaa text-base text-gray-800 max-w-4xl mx-auto">
+            <p class="font-comfortaa text-justify text-gray-800 max-w-4xl mx-auto">
                 En esta reunión, se abordarán varios aspectos de la Escuela: talleres, la granja, salidas, costos, alimentación,
                 entre otras. Es preciso que cuenten con disponibilidad de 1 hora aproximadamente.
+                <br><br>
+                Depúes de la visita, podrás contarnos si deseas continuar con el proceso de matrícula. Será un gusto que seas parte de Escuela Taller Semillas.
                 <br><br>
                 Nota: Es importante que las niñas y niños también asistan para conocer el espacio. Deben venir con un/a acompañante
                 que pueda asistirles. Sabemos que por el carácter informativo de la reunión, las niñas y niños pueden querer apartarse

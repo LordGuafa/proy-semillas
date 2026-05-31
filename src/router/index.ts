@@ -8,9 +8,12 @@ import FormularioView from "@/views/admin/FormularioView.vue";
 import AspirantesView from "@/views/admin/AspirantesView.vue";
 import GruposView from "@/views/admin/GruposView.vue";
 import ExalumnosView from "@/views/admin/ExalumnosView.vue";
-import LandingHome from "@/views/landing/HomeView.vue";
 import AdmissionsView from "@/views/admmissions/AdmissionsView.vue";
 import EnrollmentView from "@/views/admmissions/EnrollmentView.vue";
+import WorkshopView from '@/views/landing/WorkshopView.vue';
+import HomeView from '../views/landing/HomeView.vue';
+import TheFarmView from '@/views/landing/TheFarm.View.vue';
+import AboutUsView from '@/views/landing/AboutUsView.vue';
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -22,6 +25,11 @@ const router = createRouter({
       path: "/login",
       name: "login",
       component: LoginView,
+    },
+    {
+      path: "/home",
+      name: "home",
+      component: HomeView,
     },
     {
       path: "/admin",
@@ -61,11 +69,6 @@ const router = createRouter({
         },
       ],
     },
-    {
-      path: "/home",
-      name: "home",
-      component: LandingHome,
-    },
     { path: "/:pathMatch(.*)*", redirect: "/login" },
     {
       path: "/admisiones",
@@ -78,8 +81,37 @@ const router = createRouter({
       name: "enrollment",
       component: EnrollmentView,
       meta: { requiresAuth: false, title: "Enrollment" },
+    },
+    {
+      path: "/talleres",
+      name: "workshop",
+      component: WorkshopView,
+      meta: { requiresAuth: false, title: "Workshops" },
+    },
+    {
+      path: "/la-granja",
+      name: "the-farm",
+      component: TheFarmView,
+      meta: { requiresAuth: false, title: "Farm" },
+    },
+    {
+      path: "/sobre-nosotros",
+      name: "about-us",
+      component: AboutUsView,
+      meta: { requiresAuth: false, title: "AboutUs" },
     }
   ],
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition
+    }
+
+    if (to.hash) {
+      return { el: to.hash }
+    }
+
+    return { top: 0 }
+  },
 });
 
 setApiRouter(router);
