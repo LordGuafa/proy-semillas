@@ -1,128 +1,93 @@
 import { defineStore } from "pinia";
+import { inscripcionesService } from "@/services/api";
 import { useEstudiantesStore } from "@/stores/estudiantesStore";
-import { matriculasService } from "@/services/api";
-import type Matricula from "@/types/matricula";
-import { type MatriculaStatus, type FormSnapshot } from "@/types/matricula";
+import type { EstadoAprobacion } from "@/types/enums";
+import type { Inscripcion } from "@/types/inscripcion";
 
-type MatriculasResponse =
-  | Matricula[]
-  | {
-      items?: Matricula[];
-      pagination?: Partial<MatriculasPagination>;
-      data?: Matricula[];
-    };
-
-export interface MatriculasFilters {
+export interface InscripcionesFilters {
   search: string;
-  status: MatriculaStatus | "";
-  dateFrom: string;
-  dateTo: string;
+  estado: EstadoAprobacion | "";
+  fechaDesde: string;
+  fechaHasta: string;
 }
 
-export interface MatriculasPagination {
+export interface InscripcionesPagination {
   page: number;
   perPage: number;
   total: number;
 }
 
-export interface MatriculasState {
-  matriculas: Matricula[];
-  selected: Matricula | null;
+export interface InscripcionesState {
+  inscripciones: Inscripcion[];
+  selected: Inscripcion | null;
   loading: boolean;
   loadingDetail: boolean;
   error: string | null;
-  pagination: MatriculasPagination;
-  filters: MatriculasFilters;
+  pagination: InscripcionesPagination;
+  filters: InscripcionesFilters;
 }
 
-type ApiRecord = Record<string, unknown>;
-
-function toRecord(value: unknown): Record<string, string | boolean | number> {
-  if (!value || typeof value !== "object") return {};
-  return Object.entries(value as Record<string, unknown>).reduce<
-    Record<string, string | boolean | number>
-  >((accumulator, [key, rawValue]) => {
-    if (
-      typeof rawValue === "string" ||
-      typeof rawValue === "boolean" ||
-      typeof rawValue === "number"
-    ) {
-      accumulator[key] = rawValue;
-    }
-    return accumulator;
-  }, {});
+function toRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
-function normalizeStatus(value: unknown): MatriculaStatus {
-  const status = String(value ?? "").toUpperCase();
-  if (
-    status === "PENDIENTE" ||
-    status === "EN_REVISION" ||
-    status === "ENTREVISTA" ||
-    status === "APROBADA" ||
-    status === "RECHAZADA"
-  ) {
-    return status;
-  }
-  return "PENDIENTE";
+function toNumber(value: unknown, fallback = 0): number {
+  const next = Number(value);
+  return Number.isFinite(next) ? next : fallback;
 }
 
-function normalizeFormSnapshot(value: unknown): FormSnapshot {
-  const snapshot =
-    value && typeof value === "object" ? (value as Partial<FormSnapshot>) : {};
+function toString(value: unknown, fallback = ""): string {
+  return typeof value === "string" ? value : String(value ?? fallback);
+}
+
+function normalizeEstado(value: unknown): EstadoAprobacion {
+  return value === "APROBADA" ? "APROBADA" : "PENDIENTE";
+}
+
+function normalizeInscripcion(value: unknown): Inscripcion {
+  const data = toRecord(value);
+  const fechaFallback = new Date().toISOString();
   return {
-    campos: Array.isArray(snapshot.campos)
-      ? snapshot.campos
-          .map((campo) => ({
-            id: String(campo?.id ?? ""),
-            label: String(campo?.label ?? ""),
-            type: String(campo?.type ?? "text"),
-            value:
-              campo?.value === null ||
-              typeof campo?.value === "string" ||
-              typeof campo?.value === "boolean" ||
-              typeof campo?.value === "number"
-                ? campo.value
-                : null,
-          }))
-          .filter((campo) => Boolean(campo.id || campo.label))
-      : [],
-  };
-}
-
-function normalizeMatricula(record: unknown): Matricula {
-  const data = (
-    record && typeof record === "object" ? record : {}
-  ) as ApiRecord;
-  const numericId = Number(data.id);
-  return {
-    id: Number.isFinite(numericId) ? numericId : Date.now(),
-    submittedAt: String(data.submittedAt ?? new Date().toISOString()),
-    status: normalizeStatus(data.status),
-    interviewDate: data.interviewDate ? String(data.interviewDate) : undefined,
-    assignedTo: data.assignedTo ? String(data.assignedTo) : undefined,
-    studentData: toRecord(
-      data.studentData ?? data.alumno ?? data.student ?? {},
-    ),
-    guardianData: data.guardianData ? toRecord(data.guardianData) : undefined,
-    photoURL: data.photoURL ? String(data.photoURL) : undefined,
-    studentId:
-      data.studentId !== undefined && data.studentId !== null
-        ? Number(data.studentId)
+    id: toNumber(data.id, Date.now()),
+    idEstudiante: toNumber(data.idEstudiante ?? data.id_estudiante),
+    idAcudiente: toNumber(data.idAcudiente ?? data.id_acudiente),
+    idEntrevista:
+      data.idEntrevista !== undefined || data.id_entrevista !== undefined
+        ? toNumber(data.idEntrevista ?? data.id_entrevista)
         : undefined,
-    formSnapshot: normalizeFormSnapshot(
-      data.formSnapshot ?? data.form_snapshot ?? { campos: [] },
+    estado: normalizeEstado(data.estado),
+    fechaInscripcion: toString(
+      data.fechaInscripcion ?? data.fecha_inscripcion,
+      fechaFallback,
     ),
+    schemaVersion: toNumber(data.schemaVersion ?? data.schema_version),
+    informacionForm: toRecord(data.informacionForm ?? data.informacion_form),
+    createdAt: toString(data.createdAt ?? data.created_at, fechaFallback),
+    updatedAt: toString(data.updatedAt ?? data.updated_at, fechaFallback),
+    estudiante: data.estudiante
+      ? (toRecord(data.estudiante) as unknown as Inscripcion["estudiante"])
+      : undefined,
+    acudiente: data.acudiente
+      ? (toRecord(data.acudiente) as unknown as Inscripcion["acudiente"])
+      : undefined,
+    entrevista: data.entrevista
+      ? (toRecord(data.entrevista) as unknown as Inscripcion["entrevista"])
+      : undefined,
+    formSchema: data.formSchema
+      ? (toRecord(data.formSchema) as unknown as Inscripcion["formSchema"])
+      : undefined,
   };
 }
 
-function normalizeMatriculasResponse(response: MatriculasResponse | unknown): {
-  items: Matricula[];
-  pagination: MatriculasPagination;
+function normalizeCollection(response: unknown): {
+  items: Inscripcion[];
+  pagination: InscripcionesPagination;
 } {
   if (Array.isArray(response)) {
     return {
-      items: response.map((item) => normalizeMatricula(item)),
+      items: response.map((item) => normalizeInscripcion(item)),
       pagination: {
         page: 1,
         perPage: response.length || 10,
@@ -131,70 +96,68 @@ function normalizeMatriculasResponse(response: MatriculasResponse | unknown): {
     };
   }
 
-  const payload = (
-    response && typeof response === "object" ? response : {}
-  ) as {
-    items?: unknown[];
-    data?: unknown[];
-    pagination?: Partial<MatriculasPagination>;
-    total?: number;
-    page?: number;
-    perPage?: number;
-  };
+  const payload = toRecord(response);
   const items = Array.isArray(payload.items)
     ? payload.items
     : Array.isArray(payload.data)
       ? payload.data
       : [];
-  const pagination = payload.pagination ?? {};
-  const page = Number(pagination.page ?? payload.page ?? 1) || 1;
+  const pagination = toRecord(payload.pagination);
+  const page = toNumber(pagination.page ?? payload.page, 1) || 1;
   const perPage =
-    Number((pagination.perPage ?? payload.perPage ?? items.length) || 10) || 10;
+    toNumber(pagination.perPage ?? payload.perPage, items.length || 10) || 10;
   const total =
-    Number(pagination.total ?? payload.total ?? items.length) || items.length;
+    toNumber(pagination.total ?? payload.total, items.length) || items.length;
+
   return {
-    items: items.map((item) => normalizeMatricula(item)),
+    items: items.map((item) => normalizeInscripcion(item)),
     pagination: { page, perPage, total },
   };
 }
 
-function fullNameFromStudentData(
-  studentData: Record<string, string | boolean | number>,
-): string {
-  const firstName = String(
-    studentData.firstname ?? studentData.firstName ?? studentData.name ?? "",
-  );
-  const lastName = String(studentData.lastname ?? studentData.lastName ?? "");
-  const composed = `${firstName} ${lastName}`.trim();
-  if (composed) return composed;
-  const fallback = Object.values(studentData).find(
-    (value) => typeof value === "string" && value.trim(),
-  );
-  return typeof fallback === "string" ? fallback : "";
+function replaceInscripcion(
+  list: Inscripcion[],
+  next: Inscripcion,
+): Inscripcion[] {
+  const index = list.findIndex((item) => item.id === next.id);
+  if (index === -1) return [next, ...list];
+  const clone = list.slice();
+  clone[index] = next;
+  return clone;
 }
 
-function matchesSearch(matricula: Matricula, search: string): boolean {
-  const normalizedSearch = search.trim().toLowerCase();
-  if (!normalizedSearch) return true;
-  return fullNameFromStudentData(matricula.studentData)
-    .toLowerCase()
-    .includes(normalizedSearch);
+function matchesSearch(inscripcion: Inscripcion, search: string): boolean {
+  const normalized = search.trim().toLowerCase();
+  if (!normalized) return true;
+  const haystack = [
+    inscripcion.estudiante?.primerNombre,
+    inscripcion.estudiante?.segundoNombre,
+    inscripcion.estudiante?.primerApellido,
+    inscripcion.estudiante?.segundoApellido,
+    inscripcion.acudiente?.primerNombre,
+    inscripcion.acudiente?.segundoNombre,
+    inscripcion.acudiente?.primerApellido,
+    inscripcion.acudiente?.segundoApellido,
+    String(inscripcion.id),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(normalized);
 }
 
-function replaceMatricula(
-  list: Matricula[],
-  nextMatricula: Matricula,
-): Matricula[] {
-  const index = list.findIndex((item) => item.id === nextMatricula.id);
-  if (index === -1) return [nextMatricula, ...list];
-  const next = list.slice();
-  next[index] = nextMatricula;
-  return next;
+function matchesDateRange(
+  inscripcion: Inscripcion,
+  from: string,
+  to: string,
+): boolean {
+  const fecha = inscripcion.fechaInscripcion.slice(0, 10);
+  return (!from || fecha >= from) && (!to || fecha <= to);
 }
 
 export const useMatriculasStore = defineStore("matriculas", {
-  state: (): MatriculasState => ({
-    matriculas: [],
+  state: (): InscripcionesState => ({
+    inscripciones: [],
     selected: null,
     loading: false,
     loadingDetail: false,
@@ -206,182 +169,182 @@ export const useMatriculasStore = defineStore("matriculas", {
     },
     filters: {
       search: "",
-      status: "",
-      dateFrom: "",
-      dateTo: "",
+      estado: "",
+      fechaDesde: "",
+      fechaHasta: "",
     },
   }),
   getters: {
-    matriculasFiltradas: (state) => {
-      return state.matriculas.filter((matricula) =>
-        matchesSearch(matricula, state.filters.search),
-      );
-    },
+    inscripcionesFiltradas: (state) =>
+      state.inscripciones.filter((inscripcion) => {
+        const matchesEstado =
+          !state.filters.estado || inscripcion.estado === state.filters.estado;
+        return (
+          matchesEstado &&
+          matchesSearch(inscripcion, state.filters.search) &&
+          matchesDateRange(
+            inscripcion,
+            state.filters.fechaDesde,
+            state.filters.fechaHasta,
+          )
+        );
+      }),
+    matriculasFiltradas: (state) =>
+      state.inscripciones.filter((inscripcion) => {
+        const matchesEstado =
+          !state.filters.estado || inscripcion.estado === state.filters.estado;
+        return (
+          matchesEstado &&
+          matchesSearch(inscripcion, state.filters.search) &&
+          matchesDateRange(
+            inscripcion,
+            state.filters.fechaDesde,
+            state.filters.fechaHasta,
+          )
+        );
+      }),
     pendientesCount: (state) =>
-      state.matriculas.filter((matricula) => matricula.status === "PENDIENTE")
-        .length,
-    enRevisionCount: (state) =>
-      state.matriculas.filter((matricula) => matricula.status === "EN_REVISION")
-        .length,
+      state.inscripciones.filter(
+        (inscripcion) => inscripcion.estado === "PENDIENTE",
+      ).length,
+    aprobadasCount: (state) =>
+      state.inscripciones.filter(
+        (inscripcion) => inscripcion.estado === "APROBADA",
+      ).length,
+    enRevisionCount: () => 0,
   },
   actions: {
-    setError(message: string | null) {
-      this.error = message;
-    },
-    syncMatricula(matricula: Matricula) {
-      this.matriculas = replaceMatricula(this.matriculas, matricula);
-      if (this.selected?.id === matricula.id) {
-        this.selected = matricula;
+    syncInscripcion(inscripcion: Inscripcion) {
+      this.inscripciones = replaceInscripcion(this.inscripciones, inscripcion);
+      if (this.selected?.id === inscripcion.id) {
+        this.selected = inscripcion;
       }
-      return matricula;
+      return inscripcion;
     },
-    async fetchMatriculas(params?: Partial<MatriculasFilters>) {
+    async fetchInscripciones(params?: Partial<InscripcionesFilters>) {
       this.loading = true;
       this.error = null;
       if (params) {
         this.filters = { ...this.filters, ...params };
         this.pagination.page = 1;
       }
-      const query = {
-        page: this.pagination.page,
-        perPage: this.pagination.perPage,
-        search: this.filters.search,
-        status: this.filters.status,
-        dateFrom: this.filters.dateFrom,
-        dateTo: this.filters.dateTo,
-      };
       try {
-        const response = await matriculasService.getAll(query);
-        const normalized = normalizeMatriculasResponse(response);
-        this.matriculas = normalized.items;
-        this.pagination = { ...this.pagination, ...normalized.pagination };
-        return this.matriculas;
+        const response = await inscripcionesService.getAll({
+          page: this.pagination.page,
+          perPage: this.pagination.perPage,
+          search: this.filters.search,
+          estado: this.filters.estado,
+          fechaDesde: this.filters.fechaDesde,
+          fechaHasta: this.filters.fechaHasta,
+        });
+        const normalized = normalizeCollection(response.data);
+        this.inscripciones = normalized.items;
+        this.pagination = normalized.pagination;
+        return this.inscripciones;
       } catch (error) {
         this.error =
           error instanceof Error
             ? error.message
-            : "No se pudieron cargar las matrículas.";
+            : "No se pudieron cargar las inscripciones.";
         throw error;
       } finally {
         this.loading = false;
       }
     },
-    async fetchMatriculaById(id: number) {
+    async fetchMatriculas(params?: Partial<InscripcionesFilters>) {
+      return this.fetchInscripciones(params);
+    },
+    async fetchInscripcionById(id: number) {
       this.loadingDetail = true;
       this.error = null;
       try {
-        const response = await matriculasService.getById(id);
-        const matricula = normalizeMatricula(response);
-        this.selected = matricula;
-        this.syncMatricula(matricula);
-        return matricula;
+        const response = await inscripcionesService.getById(id);
+        const inscripcion = normalizeInscripcion(response.data);
+        this.selected = inscripcion;
+        this.syncInscripcion(inscripcion);
+        return inscripcion;
       } catch (error) {
         this.error =
           error instanceof Error
             ? error.message
-            : "No se pudo cargar el detalle de la matrícula.";
+            : "No se pudo cargar el detalle de la inscripción.";
         throw error;
       } finally {
         this.loadingDetail = false;
       }
     },
-    async updateStatus(id: number, status: MatriculaStatus, motivo?: string) {
+    async fetchMatriculaById(id: number) {
+      return this.fetchInscripcionById(id);
+    },
+    async aprobarInscripcion(id: number) {
       this.error = null;
+      const estudiantesStore = useEstudiantesStore();
       try {
-        const response = await matriculasService.updateStatus(id, {
-          status,
-          motivo,
-        });
-        const current = this.matriculas.find((item) => item.id === id);
-        const next = normalizeMatricula(
-          response ?? { ...(current ?? { id }), id, status },
+        const response = await inscripcionesService.aprobar(id);
+        const inscripcion = normalizeInscripcion(
+          response.data ?? { id, estado: "APROBADA" },
         );
-        this.syncMatricula({
-          ...next,
-          id,
-          status,
-          assignedTo: next.assignedTo ?? current?.assignedTo,
-          interviewDate: next.interviewDate ?? current?.interviewDate,
-          studentId: next.studentId ?? current?.studentId,
-        });
-        return this.selected?.id === id ? this.selected : next;
+        this.syncInscripcion({ ...inscripcion, estado: "APROBADA" });
+        await estudiantesStore.fetchEstudiantes();
+        return inscripcion;
       } catch (error) {
         this.error =
           error instanceof Error
             ? error.message
-            : "No se pudo actualizar el estado de la matrícula.";
+            : "No se pudo aprobar la inscripción.";
         throw error;
       }
+    },
+    async updateEstado(id: number, estado: EstadoAprobacion) {
+      this.error = null;
+      try {
+        const response = await inscripcionesService.updateEstado(id, estado);
+        const inscripcion = normalizeInscripcion(
+          response.data ?? { id, estado },
+        );
+        this.syncInscripcion({ ...inscripcion, estado });
+        return inscripcion;
+      } catch (error) {
+        this.error =
+          error instanceof Error
+            ? error.message
+            : "No se pudo actualizar el estado de la inscripción.";
+        throw error;
+      }
+    },
+    async updateStatus(
+      id: number,
+      status: EstadoAprobacion | string,
+      _motivo?: string,
+    ) {
+      return this.updateEstado(
+        id,
+        status === "APROBADA" ? "APROBADA" : "PENDIENTE",
+      );
     },
     async assignInterview(id: number, date: string) {
-      this.error = null;
-      try {
-        const response = await matriculasService.assignInterview(id, {
-          interviewDate: date,
-        });
-        const current = this.matriculas.find((item) => item.id === id);
-        const next = normalizeMatricula(
-          response ?? {
-            ...(current ?? { id }),
-            id,
-            interviewDate: date,
-            status: "ENTREVISTA",
-          },
-        );
-        this.syncMatricula({
-          ...next,
-          id,
-          status: "ENTREVISTA",
-          interviewDate: next.interviewDate ?? date,
-        });
-        return this.selected?.id === id ? this.selected : next;
-      } catch (error) {
-        this.error =
-          error instanceof Error
-            ? error.message
-            : "No se pudo agendar la entrevista.";
-        throw error;
-      }
+      const current = this.inscripciones.find(
+        (inscripcion) => inscripcion.id === id,
+      );
+      const next = normalizeInscripcion({
+        ...(current ?? { id }),
+        id,
+        estado: current?.estado ?? "PENDIENTE",
+        entrevista: {
+          id: current?.idEntrevista ?? 0,
+          franja: date,
+          cuposTotales: 0,
+        },
+      });
+      this.syncInscripcion(next);
+      return next;
     },
     async approveAndCreateStudent(id: number) {
-      const estudiantesStore = useEstudiantesStore();
-      this.error = null;
-      try {
-        const response = await matriculasService.approve(id);
-        const current = this.matriculas.find((item) => item.id === id);
-        const studentId =
-          Number(
-            (response as ApiRecord | null)?.studentId ??
-              (response as ApiRecord | null)?.student_id ??
-              current?.studentId ??
-              0,
-          ) || undefined;
-        const next = normalizeMatricula(
-          response ?? {
-            ...(current ?? { id }),
-            id,
-            status: "APROBADA",
-            studentId,
-          },
-        );
-        this.syncMatricula({
-          ...next,
-          id,
-          status: "APROBADA",
-          studentId,
-        });
-        await estudiantesStore.fetchEstudiantes();
-        return { studentId };
-      } catch (error) {
-        this.error =
-          error instanceof Error
-            ? error.message
-            : "No se pudo aprobar la matrícula.";
-        throw error;
-      }
+      const inscripcion = await this.aprobarInscripcion(id);
+      return { studentId: inscripcion.idEstudiante };
     },
-    async rejectMatricula(id: number, motivo: string) {
-      return this.updateStatus(id, "RECHAZADA", motivo);
+    async rejectMatricula(id: number, _motivo: string) {
+      return this.updateEstado(id, "PENDIENTE");
     },
   },
 });

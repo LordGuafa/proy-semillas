@@ -1,0 +1,32 @@
+students/all
+{
+  "students": [
+    {
+      "id_persona": 1,
+      "direccion_residencia": "Calle 123 # 45-67",
+      "ciudad_residencia": "Bogotá",
+      "departamento_residencia": "Cundinamarca",
+      "estrato": 3,
+      "tiene_almuerzo": false,
+      "tiene_transporte_ruta": false,
+      "foto_url": null,
+      "estado": "ASPIRANTE",
+      "created_at": "2026-05-30T20:05:27.318318+00:00",
+      "updated_at": "2026-05-30T20:05:27.318318+00:00",
+      "id": 1,
+      "telefono": "3001234567",
+      "primer_nombre": "Juan",
+      "segundo_nombre": "Carlos",
+      "tipo_documento": "TI",
+      "pais_nacimiento": "Colombia",
+      "primer_apellido": "Pérez",
+      "fecha_nacimiento": "2010-05-15",
+      "segundo_apellido": "García",
+      "ciudad_nacimiento": "Bogotá",
+      "correo_electronico": "juan.perez@example.com",
+      "usuario_sistema_id": null,
+      "documento_identidad": "1234567890",
+      "departamento_nacimiento": "Cundinamarca"
+    }
+  ]
+}

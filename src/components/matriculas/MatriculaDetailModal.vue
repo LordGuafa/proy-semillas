@@ -9,12 +9,11 @@ import BaseModal from "@/components/ui/BaseModal.vue";
 import BaseSelect from "@/components/ui/BaseSelect.vue";
 import FormFieldReadonly from "@/components/matriculas/FormFieldReadonly.vue";
 import { useMatriculasStore } from "@/stores/matriculasStore";
-import type Matricula from "@/types/matricula";
+import type { Matricula, MatriculaStatus } from "@/types/inscripcion";
 import {
   matriculaStatusLabel,
   matriculaStatusVariant,
-  type MatriculaStatus,
-} from "@/types/matricula";
+} from "@/types/inscripcion";
 
 const props = defineProps<{
   open: boolean;
@@ -239,12 +238,12 @@ function openRejectMode() {
           <BaseBadge
             :variant="
               matriculaStatusVariant[selectedStatus] ||
-              matriculaStatusVariant[matricula.status]
+              matriculaStatusVariant[matricula.status ?? 'PENDIENTE']
             "
           >
             {{
               matriculaStatusLabel[selectedStatus] ||
-              matriculaStatusLabel[matricula.status]
+              matriculaStatusLabel[matricula.status ?? 'PENDIENTE']
             }}
           </BaseBadge>
         </div>
@@ -342,7 +341,7 @@ function openRejectMode() {
         <div class="space-y-2 text-xs text-gray-400">
           <p>
             Enviado el:
-            {{ new Date(matricula.submittedAt).toLocaleDateString("es-CO") }}
+            {{ new Date(matricula.submittedAt ?? matricula.fechaInscripcion).toLocaleDateString("es-CO") }}
           </p>
           <p>Asignado a: {{ matricula.assignedTo || "Sin asignar" }}</p>
         </div>

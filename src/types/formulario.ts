@@ -1,4 +1,6 @@
-export type FormularioTipo = "ENTREVISTA" | "MATRICULA";
+import type { TipoFormulario } from "./enums";
+
+export type FormularioTipo = TipoFormulario;
 
 export interface Campo {
   id: string;
@@ -9,10 +11,16 @@ export interface Campo {
   order: number;
   options?: string[];
   placeholder?: string;
+  fijo?: boolean;
 }
 
-export interface Formulario {
-  tipo: FormularioTipo;
+export interface FormSchema {
+  id: number;
+  formulario: TipoFormulario;
+  version: number;
+  activo: boolean;
   campos: Campo[];
-  updatedAt?: string;
+  updatedBy?: string;
+  createdAt: string;
+  updatedAt: string;
 }

@@ -15,12 +15,11 @@ import BaseSelect from "@/components/ui/BaseSelect.vue";
 import BaseTable from "@/components/ui/BaseTable.vue";
 import MatriculaDetailModal from "@/components/matriculas/MatriculaDetailModal.vue";
 import { useMatriculasStore } from "@/stores/matriculasStore";
-import type Matricula from "@/types/matricula";
+import type { Matricula, MatriculaStatus } from "@/types/inscripcion";
 import {
   matriculaStatusLabel,
   matriculaStatusVariant,
-  type MatriculaStatus,
-} from "@/types/matricula";
+} from "@/types/inscripcion";
 
 const store = useMatriculasStore();
 const detailOpen = ref(false);
@@ -31,21 +30,21 @@ const searchModel = computed({
   },
 });
 const statusModel = computed({
-  get: () => store.filters.status,
+  get: () => store.filters.estado,
   set: (value: string) => {
-    void fetchMatriculas({ status: value as MatriculaStatus | "" });
+    void fetchMatriculas({ estado: value as MatriculaStatus | "" });
   },
 });
 const dateFromModel = computed({
-  get: () => store.filters.dateFrom,
+  get: () => store.filters.fechaDesde,
   set: (value: string) => {
-    void fetchMatriculas({ dateFrom: value });
+    void fetchMatriculas({ fechaDesde: value });
   },
 });
 const dateToModel = computed({
-  get: () => store.filters.dateTo,
+  get: () => store.filters.fechaHasta,
   set: (value: string) => {
-    void fetchMatriculas({ dateTo: value });
+    void fetchMatriculas({ fechaHasta: value });
   },
 });
 const pageModel = computed({
@@ -100,9 +99,9 @@ const cards = computed(() => [
 
 const approvedThisMonth = computed(() => {
   const currentMonth = new Date();
-  return store.matriculas.filter((matricula) => {
-    if (matricula.status !== "APROBADA") return false;
-    const submittedAt = new Date(matricula.submittedAt);
+  return store.matriculasFiltradas.filter((matricula) => {
+    if (matricula.estado !== "APROBADA") return false;
+    const submittedAt = new Date(matricula.fechaInscripcion);
     return (
       submittedAt.getMonth() === currentMonth.getMonth() &&
       submittedAt.getFullYear() === currentMonth.getFullYear()
@@ -167,30 +166,30 @@ function initials(matricula: Matricula): string {
 
 function rowClass(row: Record<string, any>): string {
   const matricula = row as Matricula;
-  if (matricula.status === "PENDIENTE")
+  if (matricula.estado === "PENDIENTE")
     return "border-l-4 border-l-accent bg-accent/5";
-  if (matricula.status === "RECHAZADA") return "text-gray-400";
+  if (String(matricula.estado) === "RECHAZADA") return "text-gray-400";
   return "";
 }
 
 async function fetchMatriculas(
   params?: Partial<{
     search: string;
-    status: MatriculaStatus | "";
-    dateFrom: string;
-    dateTo: string;
+    estado: MatriculaStatus | "";
+    fechaDesde: string;
+    fechaHasta: string;
   }>,
 ) {
-  await store.fetchMatriculas(params);
+  await store.fetchInscripciones(params as Parameters<typeof store.fetchInscripciones>[0]);
 }
 
 async function openDetail(matriculaId: number) {
-  await store.fetchMatriculaById(matriculaId);
+  await store.fetchInscripcionById(matriculaId);
   detailOpen.value = true;
 }
 
 function activateCardFilter(status: MatriculaStatus | "") {
-  void fetchMatriculas({ status });
+  void fetchMatriculas({ estado: status });
 }
 
 function csvEscape(value: unknown): string {
@@ -217,10 +216,10 @@ function exportCsv() {
       matricula.id,
       getStudentFullName(matricula),
       getGuardianName(matricula),
-      matricula.submittedAt,
+      matricula.fechaInscripcion,
       matricula.interviewDate ?? "",
       matricula.assignedTo ?? "",
-      matricula.status,
+      matricula.estado,
     ]
       .map(csvEscape)
       .join(","),
@@ -389,7 +388,7 @@ onMounted(() => {
 
       <template #cell-submittedAt="{ row }">
         <p class="text-sm text-gray-500">
-          {{ formatDate((row as Matricula).submittedAt) }}
+          {{ formatDate((row as Matricula).fechaInscripcion) }}
         </p>
       </template>
 
@@ -407,8 +406,8 @@ onMounted(() => {
       </template>
 
       <template #cell-status="{ row }">
-        <BaseBadge :variant="matriculaStatusVariant[(row as Matricula).status]">
-          {{ matriculaStatusLabel[(row as Matricula).status] }}
+        <BaseBadge :variant="matriculaStatusVariant[(row as Matricula).estado ?? 'PENDIENTE']">
+          {{ matriculaStatusLabel[(row as Matricula).estado ?? 'PENDIENTE'] }}
         </BaseBadge>
       </template>
 

@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from "@/stores/authStore";
-import { setApiRouter } from "@/services/api";
 import AdminLayout from "@/layouts/AdminLayout.vue";
 import LoginView from "@/views/admin/LoginView.vue";
 import StudentsView from "@/views/EstudiantesView.vue";
@@ -26,7 +25,7 @@ const router = createRouter({
     {
       path: "/admin",
       component: AdminLayout,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: false },
       children: [
         { path: "", redirect: "/admin/estudiantes" },
         {
@@ -82,15 +81,13 @@ const router = createRouter({
   ],
 });
 
-setApiRouter(router);
-
-router.beforeEach((to) => {
-  const authStore = useAuthStore();
-  if (to.meta.requiresAuth && !authStore.isAuthenticated)
-    return { path: "/login", query: { redirect: to.fullPath } };
-  if (to.path === "/login" && authStore.isAuthenticated)
-    return { path: "/admin/estudiantes" };
-  return true;
-});
+// router.beforeEach((to) => {
+//   const authStore = useAuthStore();
+//   if (to.meta.requiresAuth && !authStore.isAuthenticated)
+//     return { path: "/login", query: { redirect: to.fullPath } };
+//   if (to.path === "/login" && authStore.isAuthenticated)
+//     return { path: "/admin/estudiantes" };
+//   return true;
+// });
 
 export default router

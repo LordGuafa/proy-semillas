@@ -15,58 +15,19 @@ export type ApplicantRecord = {
 };
 
 const storageKey = "semillas-applicants";
-const defaultApplicants: ApplicantRecord[] = [
-  {
-    id: "app-1",
-    fullName: "Valentina Pérez",
-    sentDate: "2026-05-10",
-    interviewDate: "2026-05-14",
-    status: "pending",
-    fieldValues: {
-      guardianName: "Diana Pérez",
-      phone: "3125554433",
-      birthDate: "2021-03-05",
-    },
-  },
-  {
-    id: "app-2",
-    fullName: "Mateo Gómez",
-    sentDate: "2026-05-11",
-    interviewDate: "2026-05-16",
-    status: "pending",
-    fieldValues: {
-      guardianName: "Pedro Gómez",
-      phone: "3134445566",
-      birthDate: "2020-08-19",
-    },
-  },
-];
-
-function calculateAge(dateValue: string): number {
-  const birthDate = new Date(dateValue);
-  const today = new Date();
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const monthDifference = today.getMonth() - birthDate.getMonth();
-  if (
-    monthDifference < 0 ||
-    (monthDifference === 0 && today.getDate() < birthDate.getDate())
-  )
-    age -= 1;
-  return Math.max(age, 1);
-}
 
 export const useAspirantesStore = defineStore("aspirantes", {
   state: () => ({
-    aspirantes: readJSON<ApplicantRecord[]>(storageKey, defaultApplicants),
+    aspirantes: readJSON<ApplicantRecord[]>(storageKey, []),
     loading: false,
   }),
   actions: {
     async fetchAspirantes() {
       this.loading = true;
       try {
-        const aspirantes =
-          (await aspirantesService.getAll()) as ApplicantRecord[];
-        this.aspirantes = aspirantes.length ? aspirantes : defaultApplicants;
+        const aspirantes = ((await aspirantesService.getAll()).data ??
+          []) as ApplicantRecord[];
+        this.aspirantes = Array.isArray(aspirantes) ? aspirantes : [];
         writeJSON(storageKey, this.aspirantes);
         return this.aspirantes;
       } finally {
@@ -79,16 +40,7 @@ export const useAspirantesStore = defineStore("aspirantes", {
       const studentsStore = useEstudiantesStore();
       await studentsStore.createEstudiante({
         fullName: applicant.fullName,
-        age: applicant.fieldValues.birthDate
-          ? calculateAge(String(applicant.fieldValues.birthDate))
-          : 5,
-        group: "Pendiente",
-        entryDate: applicant.sentDate,
         status: "active",
-        photoUrl: "",
-        observations: "",
-        graduationYear: null,
-        fieldValues: applicant.fieldValues,
       });
       this.aspirantes = this.aspirantes.map((entry) =>
         entry.id === id ? { ...entry, status: "active" } : entry,

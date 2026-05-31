@@ -9,7 +9,7 @@ import { useAuthStore } from '@/stores/authStore'
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
-const form = reactive({ email: '', password: '' })
+const form = reactive({ nombreUsuario: '', password: '' })
 const errorMessage = ref('')
 const redirectPath = computed(() => String(route.query.redirect || '/admin/estudiantes'))
 
@@ -40,7 +40,7 @@ async function handleSubmit() {
             </div>
 
             <div class="space-y-4">
-                <BaseInput v-model="form.email" label="Correo electrónico" type="email" required />
+                <BaseInput v-model="form.nombreUsuario" label="Usuario" type="text" required />
                 <BaseInput v-model="form.password" label="Contraseña" type="password" required />
             </div>
 

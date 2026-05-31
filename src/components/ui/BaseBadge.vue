@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import type { EstadoAprobacion, EstadoEstudiante } from '@/types/enums'
 
 const props = defineProps<{
-    status?: 'pending' | 'active' | 'inactive' | 'graduated' | string
-    variant?: 'pending' | 'active' | 'inactive' | 'graduated' | string
+    status?: EstadoEstudiante | EstadoAprobacion | 'warning' | 'info' | string
+    variant?: EstadoEstudiante | EstadoAprobacion | 'warning' | 'info' | string
 }>()
 const badgeClasses = computed(() => {
     const variant = props.variant || props.status || 'inactive'

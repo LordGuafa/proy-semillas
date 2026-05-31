@@ -15,18 +15,21 @@ const toastMessage = ref('')
 const toastVisible = ref(false)
 
 const typeLabels: Record<FormularioTipo, string> = {
-  ENTREVISTA: 'Formulario de Entrevista',
-  MATRICULA: 'Formulario de Matrícula',
+  inscripcion: 'Formulario de Inscripción',
+  entrevista: 'Formulario de Entrevista',
+  matricula: 'Formulario de Matrícula',
 }
 
 const typeDescriptions: Record<FormularioTipo, string> = {
-  ENTREVISTA: 'Campos que verá el acudiente al solicitar una cita de entrevista.',
-  MATRICULA: 'Campos que completará el acudiente durante el proceso de matrícula.',
+  inscripcion: 'Campos base para registrar una solicitud de inscripción.',
+  entrevista: 'Campos que verá el acudiente al solicitar una cita de entrevista.',
+  matricula: 'Campos que completará el acudiente durante el proceso de matrícula.',
 }
 
 const fixedFieldIds: Record<FormularioTipo, Set<string>> = {
-  ENTREVISTA: new Set(['fotoAspirante', 'fechaPreferidaEntrevista']),
-  MATRICULA: new Set(['fotoEstudiante', 'documentoIdentidad']),
+  inscripcion: new Set([]),
+  entrevista: new Set(['fotoAspirante', 'fechaPreferidaEntrevista']),
+  matricula: new Set(['fotoEstudiante', 'documentoIdentidad']),
 }
 
 const activeCampos = computed<Campo[]>({
@@ -87,8 +90,8 @@ function removeCampo(campoId: string) {
 }
 
 onMounted(async () => {
-  await formularioStore.fetchFormulario('ENTREVISTA')
-  await formularioStore.fetchFormulario('MATRICULA')
+  await formularioStore.fetchFormulario('entrevista')
+  await formularioStore.fetchFormulario('matricula')
 })
 </script>
 
@@ -104,24 +107,24 @@ onMounted(async () => {
         <button
           type="button"
           role="tab"
-          :aria-selected="formularioStore.tipoActivo === 'ENTREVISTA'"
+          :aria-selected="formularioStore.tipoActivo === 'entrevista'"
           class="relative rounded-full px-4 py-2 text-sm font-medium transition"
-          :class="formularioStore.tipoActivo === 'ENTREVISTA' ? 'bg-primary text-white' : 'border border-primary text-primary hover:bg-primary/10'"
-          @click="openTab('ENTREVISTA')"
+          :class="formularioStore.tipoActivo === 'entrevista' ? 'bg-primary text-white' : 'border border-primary text-primary hover:bg-primary/10'"
+          @click="openTab('entrevista')"
         >
           <span>Formulario de Entrevista</span>
-          <span v-if="formularioStore.tipoActivo === 'ENTREVISTA' && formularioStore.dirty" class="absolute right-2 top-2 h-2 w-2 rounded-full bg-accent" />
+          <span v-if="formularioStore.tipoActivo === 'entrevista' && formularioStore.dirty" class="absolute right-2 top-2 h-2 w-2 rounded-full bg-accent" />
         </button>
         <button
           type="button"
           role="tab"
-          :aria-selected="formularioStore.tipoActivo === 'MATRICULA'"
+          :aria-selected="formularioStore.tipoActivo === 'matricula'"
           class="relative rounded-full px-4 py-2 text-sm font-medium transition"
-          :class="formularioStore.tipoActivo === 'MATRICULA' ? 'bg-primary text-white' : 'border border-primary text-primary hover:bg-primary/10'"
-          @click="openTab('MATRICULA')"
+          :class="formularioStore.tipoActivo === 'matricula' ? 'bg-primary text-white' : 'border border-primary text-primary hover:bg-primary/10'"
+          @click="openTab('matricula')"
         >
           <span>Formulario de Matrícula</span>
-          <span v-if="formularioStore.tipoActivo === 'MATRICULA' && formularioStore.dirty" class="absolute right-2 top-2 h-2 w-2 rounded-full bg-accent" />
+          <span v-if="formularioStore.tipoActivo === 'matricula' && formularioStore.dirty" class="absolute right-2 top-2 h-2 w-2 rounded-full bg-accent" />
         </button>
       </div>
 

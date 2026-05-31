@@ -7,8 +7,8 @@ import BaseInput from "@/components/ui/BaseInput.vue";
 import BaseModal from "@/components/ui/BaseModal.vue";
 import BaseSelect from "@/components/ui/BaseSelect.vue";
 import { useEstudiantesStore } from "@/stores/estudiantesStore";
-import type Guardian from "@/types/guardian";
-import type Student from "@/types/student";
+import type { Guardian } from "@/types/guardian";
+import type { Student } from "@/types/student";
 import { studentStatusLabel, studentStatusVariant } from "@/types/student";
 import GuardianCard from "./GuardianCard.vue";
 import GuardianFormModal from "./GuardianFormModal.vue";
@@ -40,7 +40,7 @@ const form = reactive({
   strata: "",
   hasLunch: false,
   hasTransport: false,
-  status: "ASPIRANTE" as Student["status"],
+  status: "ASPIRANTE" as string,
   photoURL: "",
 });
 
@@ -63,7 +63,7 @@ const modalTitle = computed(() => {
   if (!props.student) return "Nuevo estudiante";
   return props.readonly ? "Detalle del estudiante" : "Editar estudiante";
 });
-const statusLabel = computed(() => studentStatusLabel[form.status]);
+const statusLabel = computed(() => studentStatusLabel[form.status ?? "ASPIRANTE"] ?? "Aspirante");
 
 function resetObjectUrl() {
   if (objectUrl.value) {
@@ -148,7 +148,7 @@ async function saveStudent() {
     hasTransport: form.hasTransport,
     status: form.status,
     photoURL: previewUrl.value,
-  };
+  } as unknown as Student;
 
   if (props.student) {
     await estudiantesStore.updateEstudiante(props.student.id, payload);
@@ -255,7 +255,7 @@ async function deleteGuardian(guardianId: number) {
             @change="handlePhotoChange"
           />
           <div class="flex justify-center">
-            <BaseBadge :variant="studentStatusVariant[form.status]">{{
+            <BaseBadge :variant="studentStatusVariant[form.status ?? 'ASPIRANTE'] ?? 'pending'">{{
               statusLabel
             }}</BaseBadge>
           </div>

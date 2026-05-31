@@ -16,7 +16,8 @@ type LegacyCampo = {
 const storageKey = "semillas-formularios";
 
 const fixedFields: Record<FormularioTipo, Campo[]> = {
-  ENTREVISTA: [
+  inscripcion: [],
+  entrevista: [
     {
       id: "fotoAspirante",
       label: "Foto del aspirante",
@@ -34,7 +35,7 @@ const fixedFields: Record<FormularioTipo, Campo[]> = {
       order: 2,
     },
   ],
-  MATRICULA: [
+  matricula: [
     {
       id: "fotoEstudiante",
       label: "Foto del estudiante",
@@ -56,8 +57,9 @@ const fixedFields: Record<FormularioTipo, Campo[]> = {
 
 function createDefaultState(): FormularioState {
   return {
-    ENTREVISTA: fixedFields.ENTREVISTA.map((field) => ({ ...field })),
-    MATRICULA: fixedFields.MATRICULA.map((field) => ({ ...field })),
+    inscripcion: [],
+    entrevista: fixedFields.entrevista.map((field) => ({ ...field })),
+    matricula: fixedFields.matricula.map((field) => ({ ...field })),
   };
 }
 
@@ -128,7 +130,7 @@ export const useFormularioStore = defineStore("formulario", {
         const campos = toCampoList(response);
         if (campos.length) {
           this.formularios[tipo] = mergeWithFixed(tipo, campos);
-        } else if (tipo === "ENTREVISTA") {
+        } else if (tipo === "entrevista") {
           const legacyCampos = toCampoList(
             await formularioService.getLegacyFields(),
           );

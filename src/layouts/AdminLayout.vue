@@ -17,6 +17,17 @@ const navigation = [
 ]
 
 const sectionTitle = computed(() => [...route.matched].reverse().find((entry) => entry.meta?.title)?.meta?.title as string | undefined || 'Panel administrativo')
+const currentUser = computed(() => authStore.user)
+const currentUserInitial = computed(() => {
+    const user = authStore.user
+    const name = user?.name ?? `${user?.persona?.primerNombre ?? ''} ${user?.persona?.primerApellido ?? ''}`.trim()
+    return (name || 'U').charAt(0)
+})
+const currentUserDisplayName = computed(() => {
+    const user = authStore.user
+    return user?.name ?? (`${user?.persona?.primerNombre ?? ''} ${user?.persona?.primerApellido ?? ''}`.trim() || 'Usuario')
+})
+const currentUserRole = computed(() => authStore.user?.role ?? authStore.user?.rol ?? '')
 
 function logout() { authStore.logout(); router.push('/login') }
 </script>
@@ -47,10 +58,10 @@ function logout() { authStore.logout(); router.push('/login') }
                 <div class="flex items-center gap-3">
                     <div
                         class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                        {{ authStore.user.name.charAt(0) }}</div>
+                        {{ currentUserInitial }}</div>
                     <div class="leading-tight">
-                        <p class="text-sm font-semibold text-gray-800">{{ authStore.user.name }}</p>
-                        <p class="text-xs text-gray-500">{{ authStore.user.role }}</p>
+                        <p class="text-sm font-semibold text-gray-800">{{ currentUserDisplayName }}</p>
+                        <p class="text-xs text-gray-500">{{ currentUserRole }}</p>
                     </div>
                 </div>
             </header>

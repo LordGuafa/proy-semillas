@@ -11,7 +11,7 @@ import BaseTable from '@/components/ui/BaseTable.vue'
 import EstudianteModal from '@/components/estudiantes/EstudianteModal.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import { useEstudiantesStore } from '@/stores/estudiantesStore'
-import type Student from '@/types/student'
+import type { Student } from '@/types/student'
 import { studentStatusLabel, studentStatusVariant } from '@/types/student'
 
 const estudiantesStore = useEstudiantesStore()
@@ -74,11 +74,11 @@ const selectedStudentName = computed(() =>
 )
 
 function statusVariant(status: Student['status']) {
-    return studentStatusVariant[status]
+    return studentStatusVariant[status ?? 'ASPIRANTE']
 }
 
 function statusLabel(status: Student['status']) {
-    return studentStatusLabel[status]
+    return studentStatusLabel[status ?? 'ASPIRANTE']
 }
 
 watch([searchTerm, statusFilter, cityFilter], () => {

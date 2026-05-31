@@ -8,7 +8,7 @@ import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseTable from '@/components/ui/BaseTable.vue'
 import EstudianteModal from '@/components/estudiantes/EstudianteModal.vue'
 import { useEstudiantesStore } from '@/stores/estudiantesStore'
-import type Student from '@/types/student'
+import type { Student } from '@/types/student'
 import { studentStatusLabel, studentStatusVariant } from '@/types/student'
 
 const estudiantesStore = useEstudiantesStore()
@@ -51,11 +51,11 @@ const visibleStudents = computed(() => {
   return filteredStudents.value.slice(start, start + pageSize)
 })
 
-function statusVariant(status: Student['status']) {
+function statusVariant(status: Student['estado']) {
   return studentStatusVariant[status]
 }
 
-function statusLabel(status: Student['status']) {
+function statusLabel(status: Student['estado']) {
   return studentStatusLabel[status]
 }
 
@@ -137,7 +137,7 @@ onMounted(() => {
       </template>
 
       <template #cell-status="{ row }">
-          <BaseBadge :variant="statusVariant((row as Student).status)">{{ statusLabel((row as Student).status) }}</BaseBadge>
+          <BaseBadge :variant="statusVariant((row as Student).estado ?? 'ASPIRANTE')">{{ statusLabel((row as Student).estado ?? 'ASPIRANTE') }}</BaseBadge>
       </template>
 
       <template #actions="{ row }">

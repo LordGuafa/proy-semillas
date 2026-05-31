@@ -1,27 +1,35 @@
-export default interface Student {
-  readonly id: number;
-  firstname: string;
-  lastname: string;
-  homeAddress: string;
+import type { EstadoEstudiante } from "./enums";
+import { estadoEstudianteBadge, estadoEstudianteLabel } from "./enums";
+import type { Persona } from "./persona";
+import type { Guardian } from "./guardian";
+
+export interface Student extends Persona {
+  direccionResidencia: string;
+  ciudadResidencia?: string;
+  departamentoResidencia?: string;
+  estrato: number;
+  tieneAlmuerzo: boolean;
+  tieneTranporteRuta: boolean;
+  fotoUrl?: string;
+  estado: EstadoEstudiante;
+  acudientes?: Guardian[];
+  firstname?: string;
+  lastname?: string;
+  homeAddress?: string;
   city?: string;
   department?: string;
   strata?: string;
-  hasLunch: boolean;
-  hasTransport: boolean;
-  status: "ASPIRANTE" | "ACTIVO" | "RETIRADO" | "EGRESADO";
+  hasLunch?: boolean;
+  hasTransport?: boolean;
   photoURL?: string;
+  status?: EstadoEstudiante;
 }
 
-export const studentStatusLabel: Record<Student["status"], string> = {
-  ASPIRANTE: "Aspirante",
-  ACTIVO: "Activo",
-  RETIRADO: "Retirado",
-  EGRESADO: "Egresado",
-};
+export type StudentPayload = Omit<
+  Student,
+  "id" | "createdAt" | "updatedAt" | "acudientes" | "usuarioSistemaId"
+>;
 
-export const studentStatusVariant: Record<Student["status"], string> = {
-  ASPIRANTE: "pending",
-  ACTIVO: "active",
-  RETIRADO: "inactive",
-  EGRESADO: "graduated",
-};
+export const studentStatusLabel: Record<string, string> = estadoEstudianteLabel;
+export const studentStatusVariant: Record<string, string> =
+  estadoEstudianteBadge;
