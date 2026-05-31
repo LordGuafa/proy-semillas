@@ -122,7 +122,7 @@ onBeforeUnmount(() => {
                     </div>
 
                     <div
-                        class="space-y-4 text-justify font-comfortaa leading-7 text-slate-700  md:leading-7">
+                        class="space-y-4 text-justify font-comfortaa leading-7 text-slate-700 md:leading-7">
                         <p>
                             En estas visitas, tenemos contacto con los animales que habitan la granja, logramos conocer
                             sus estilos de vida, necesidades, su forma de reproducción, de alimentación y cuidado. De
