@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { PencilSquareIcon, PlusIcon, TrashIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/vue/24/outline'
+import { useRoute } from 'vue-router'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
@@ -10,10 +11,11 @@ import BaseTable from '@/components/ui/BaseTable.vue'
 import EstudianteModal from '@/components/estudiantes/EstudianteModal.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import { useEstudiantesStore } from '@/stores/estudiantesStore'
-import type Student from '@/types/student'
+import type { Student } from '@/types/student'
 import { studentStatusLabel, studentStatusVariant } from '@/types/student'
 
 const estudiantesStore = useEstudiantesStore()
+const route = useRoute()
 const searchTerm = ref('')
 const statusFilter = ref('all')
 const cityFilter = ref('all')
@@ -22,6 +24,8 @@ const pageSize = 8
 const editorOpen = ref(false)
 const deleteModalOpen = ref(false)
 const selectedStudent = ref<Student | null>(null)
+const highlightedStudentId = ref<number | null>(null)
+let highlightTimer: number | undefined
 
 const columns = [
     { key: 'photo', label: 'Avatar' },
@@ -70,11 +74,11 @@ const selectedStudentName = computed(() =>
 )
 
 function statusVariant(status: Student['status']) {
-    return studentStatusVariant[status]
+    return studentStatusVariant[status ?? 'ASPIRANTE']
 }
 
 function statusLabel(status: Student['status']) {
-    return studentStatusLabel[status]
+    return studentStatusLabel[status ?? 'ASPIRANTE']
 }
 
 watch([searchTerm, statusFilter, cityFilter], () => {
@@ -100,6 +104,35 @@ function askDelete(student: Student) {
     deleteModalOpen.value = true
 }
 
+function studentRowClass(row: Record<string, any>) {
+    return highlightedStudentId.value === Number(row.id) ? 'ring-2 ring-accent ring-inset bg-accent/5' : ''
+}
+
+function scrollToHighlightedStudent(studentId: number) {
+    const row = document.getElementById(`row-${studentId}`)
+    row?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
+
+function applyHighlight(studentId: number) {
+    highlightedStudentId.value = studentId
+    if (highlightTimer) window.clearTimeout(highlightTimer)
+    highlightTimer = window.setTimeout(() => {
+        highlightedStudentId.value = null
+    }, 2000)
+}
+
+async function syncHighlightFromRoute() {
+    const highlightValue = route.query.highlight
+    const highlightId = Number(Array.isArray(highlightValue) ? highlightValue[0] : highlightValue)
+    if (!Number.isFinite(highlightId) || highlightId <= 0) {
+        highlightedStudentId.value = null
+        return
+    }
+    await nextTick()
+    applyHighlight(highlightId)
+    scrollToHighlightedStudent(highlightId)
+}
+
 async function removeStudent() {
     if (!selectedStudent.value) return
     await estudiantesStore.deleteEstudiante(selectedStudent.value.id)
@@ -109,7 +142,15 @@ async function removeStudent() {
 
 onMounted(() => {
     estudiantesStore.fetchEstudiantes()
+    void syncHighlightFromRoute()
 })
+
+watch(
+    () => route.query.highlight,
+    () => {
+        void syncHighlightFromRoute()
+    },
+)
 </script>
 
 <template>
@@ -139,6 +180,7 @@ onMounted(() => {
             :total="filteredStudents.length"
             empty-message="No hay estudiantes para mostrar."
             actions-label="Acciones"
+            :row-class="studentRowClass"
             @row-click="(row) => openEditModal(row as Student)"
         >
             <template #cell-photo="{ row }">

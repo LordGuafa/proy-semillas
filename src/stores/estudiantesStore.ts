@@ -1,8 +1,8 @@
 import { defineStore } from "pinia";
 import { estudiantesService } from "@/services/api";
 import { readJSON, writeJSON } from "@/utils/storage";
-import type Guardian from "@/types/guardian";
-import type Student from "@/types/student";
+import type { Guardian } from "@/types/guardian";
+import type { Student } from "@/types/student";
 
 type StudentFilter = {
   status?: Student["status"] | "all";
@@ -23,6 +23,14 @@ type LegacyStudentRecord = {
   status: "pending" | "active" | "inactive" | "graduated" | Student["status"];
   photoURL?: string;
   photoUrl?: string;
+  documentoIdentidad?: string;
+  tipoDocumento?: Student["tipoDocumento"];
+  correoElectronico?: string;
+  telefono?: string;
+  fechaNacimiento?: string;
+  paisNacimiento?: string;
+  departamentoNacimiento?: string;
+  ciudadNacimiento?: string;
   observations?: string;
   age?: number;
   group?: string;
@@ -80,19 +88,61 @@ function normalizeStudentRecord(
 
   return {
     id: Number.isFinite(numericId) ? numericId : index + 1,
-    firstname: record.firstname ?? names.firstname,
-    lastname: record.lastname ?? names.lastname,
-    homeAddress:
+    usuarioSistemaId: undefined,
+    documentoIdentidad: String(
+      record.documentoIdentidad ??
+        fieldValues.documentoIdentidad ??
+        fieldValues.documentNumber ??
+        "",
+    ),
+    tipoDocumento: String(
+      record.tipoDocumento ?? fieldValues.tipoDocumento ?? "CC",
+    ) as Student["tipoDocumento"],
+    primerNombre: record.firstname ?? names.firstname,
+    segundoNombre: undefined,
+    primerApellido: record.lastname ?? names.lastname,
+    segundoApellido: undefined,
+    correoElectronico:
+      String(record.correoElectronico ?? fieldValues.correoElectronico ?? "") ||
+      undefined,
+    telefono:
+      String(record.telefono ?? fieldValues.telefono ?? "") || undefined,
+    fechaNacimiento:
+      String(record.fechaNacimiento ?? fieldValues.fechaNacimiento ?? "") ||
+      undefined,
+    paisNacimiento:
+      String(record.paisNacimiento ?? fieldValues.paisNacimiento ?? "") ||
+      undefined,
+    departamentoNacimiento:
+      String(
+        record.departamentoNacimiento ??
+          fieldValues.departamentoNacimiento ??
+          "",
+      ) || undefined,
+    ciudadNacimiento:
+      String(record.ciudadNacimiento ?? fieldValues.ciudadNacimiento ?? "") ||
+      undefined,
+    createdAt: String(
+      (record as { createdAt?: string }).createdAt ?? new Date().toISOString(),
+    ),
+    updatedAt: String(
+      (record as { updatedAt?: string }).updatedAt ?? new Date().toISOString(),
+    ),
+    direccionResidencia:
       record.homeAddress ??
       String(fieldValues.homeAddress ?? fieldValues.address ?? ""),
-    city: (record.city ?? String(fieldValues.city ?? "")) || undefined,
-    department:
+    ciudadResidencia:
+      (record.city ?? String(fieldValues.city ?? "")) || undefined,
+    departamentoResidencia:
       (record.department ?? String(fieldValues.department ?? "")) || undefined,
-    strata: (record.strata ?? String(fieldValues.strata ?? "")) || undefined,
-    hasLunch: record.hasLunch ?? parseBoolean(fieldValues.hasLunch),
-    hasTransport: record.hasTransport ?? parseBoolean(fieldValues.hasTransport),
-    status: normalizeStatus(record.status),
-    photoURL: record.photoURL ?? record.photoUrl,
+    estrato: Number(record.strata ?? fieldValues.strata ?? 0) || 0,
+    tieneAlmuerzo: record.hasLunch ?? parseBoolean(fieldValues.hasLunch),
+    tieneTranporteRuta:
+      record.hasTransport ?? parseBoolean(fieldValues.hasTransport),
+    fotoUrl: record.photoURL ?? record.photoUrl,
+    estado: normalizeStatus(record.status) as Student["estado"],
+    firstname: record.firstname ?? names.firstname,
+    lastname: record.lastname ?? names.lastname,
   };
 }
 
@@ -107,6 +157,46 @@ function normalizeGuardianRecord(
   const numericId = Number(record.id);
   return {
     id: Number.isFinite(numericId) ? numericId : index + 1,
+    usuarioSistemaId: undefined,
+    documentoIdentidad: String(
+      record.documentNumber ?? record.documentoIdentidad ?? "",
+    ),
+    tipoDocumento: String(
+      record.documentType ?? record.tipoDocumento ?? "CC",
+    ) as Guardian["tipoDocumento"],
+    primerNombre: String(record.firstName ?? record.primerNombre ?? ""),
+    segundoNombre: undefined,
+    primerApellido: String(record.lastName ?? record.primerApellido ?? ""),
+    segundoApellido: undefined,
+    correoElectronico:
+      String(record.email ?? record.correoElectronico ?? "") || undefined,
+    telefono: String(record.phone ?? record.telefono ?? "") || undefined,
+    fechaNacimiento: record.birthdate
+      ? new Date(record.birthdate).toISOString()
+      : undefined,
+    paisNacimiento: undefined,
+    departamentoNacimiento: undefined,
+    ciudadNacimiento: undefined,
+    createdAt: String(
+      (record as { createdAt?: string }).createdAt ?? new Date().toISOString(),
+    ),
+    updatedAt: String(
+      (record as { updatedAt?: string }).updatedAt ?? new Date().toISOString(),
+    ),
+    parentesco: String(record.kinship ?? record.parentesco ?? ""),
+    ocupacion: String(record.occupation ?? record.ocupacion ?? "") || undefined,
+    nombreEmpresaTrabajo:
+      String(record.workplace ?? record.nombreEmpresaTrabajo ?? "") ||
+      undefined,
+    direccionCasa:
+      String(record.homeAddress ?? record.direccionCasa ?? "") || undefined,
+    ciudadCasa: String(record.city ?? record.ciudadCasa ?? "") || undefined,
+    departamentoCasa:
+      String(record.department ?? record.departamentoCasa ?? "") || undefined,
+    esPrincipal: Boolean(record.isMainGuardian ?? record.esPrincipal),
+    esResponsablePago: Boolean(
+      record.isPaymentResponsible ?? record.esResponsablePago,
+    ),
     firstName: String(record.firstName ?? ""),
     lastName: String(record.lastName ?? ""),
     kinship: String(record.kinship ?? ""),
@@ -163,91 +253,33 @@ function cloneStudent(student: Student): Student {
   return { ...student };
 }
 
+function mergeStudent(
+  existing: Student | undefined,
+  next: Partial<Student> & { id: number },
+): Student {
+  const base = existing ?? {
+    id: next.id,
+    firstname: "",
+    lastname: "",
+    homeAddress: "",
+    city: undefined,
+    department: undefined,
+    strata: undefined,
+    hasLunch: false,
+    hasTransport: false,
+    status: "ASPIRANTE" as Student["status"],
+    photoURL: undefined,
+  };
+  return cloneStudent({ ...base, ...next, id: next.id } as Student);
+}
+
 export const useEstudiantesStore = defineStore("estudiantes", {
   state: () => {
     const persisted = readJSON<LegacyStudentRecord[]>(storageKey, []);
-    const seed: LegacyStudentRecord[] = [
-      {
-        id: 1,
-        firstname: "María",
-        lastname: "González",
-        homeAddress: "Calle 123 #45-67",
-        city: "Bogotá",
-        department: "Cundinamarca",
-        strata: "3",
-        hasLunch: true,
-        hasTransport: false,
-        status: "ACTIVO",
-        photoURL: "",
-      },
-      {
-        id: 2,
-        firstname: "Juan",
-        lastname: "Pérez",
-        homeAddress: "Carrera 10 #5-20",
-        city: "Medellín",
-        department: "Antioquia",
-        strata: "2",
-        hasLunch: false,
-        hasTransport: true,
-        status: "ASPIRANTE",
-        photoURL: "",
-      },
-      {
-        id: 3,
-        firstname: "Lucía",
-        lastname: "Ramírez",
-        homeAddress: "Av. Siempre Viva 742",
-        city: "Cali",
-        department: "Valle del Cauca",
-        strata: "4",
-        hasLunch: true,
-        hasTransport: true,
-        status: "RETIRADO",
-        photoURL: "",
-      },
-      {
-        id: 4,
-        firstname: "Carlos",
-        lastname: "Santos",
-        homeAddress: "Paseo 9 #11",
-        city: "Barranquilla",
-        department: "Atlántico",
-        strata: "3",
-        hasLunch: false,
-        hasTransport: false,
-        status: "EGRESADO",
-        photoURL: "",
-      },
-    ];
-    const initial = persisted.length ? persisted : seed;
-    // If there was no persisted data, persist the seed so subsequent loads read it
-    if (!persisted.length)
-      writeJSON(storageKey, initial as LegacyStudentRecord[]);
 
     return {
-      estudiantes: normalizeStudents(initial),
-      guardians: {
-        1: normalizeGuardians([
-          {
-            id: 1,
-            firstName: "Ana",
-            lastName: "González",
-            kinship: "Madre",
-            occupation: "Contadora",
-            workplace: "Empresa S.A.",
-            homeAddress: "Calle 123 #45-67",
-            city: "Bogotá",
-            department: "Cundinamarca",
-            phone: "3001234567",
-            email: "ana@example.com",
-            documentType: "CC",
-            documentNumber: "12345678",
-            isMainGuardian: true,
-            isPaymentResponsible: true,
-          },
-        ]),
-      } as Record<number, Guardian[]>,
+      estudiantes: normalizeStudents(persisted),
+      guardians: {} as Record<number, Guardian[]>,
       loading: false,
       loadingGuardians: false,
     };
@@ -303,17 +335,10 @@ export const useEstudiantesStore = defineStore("estudiantes", {
     async fetchEstudiantes() {
       this.loading = true;
       try {
-        const estudiantes =
-          (await estudiantesService.getAll()) as LegacyStudentRecord[];
+        const estudiantes = ((await estudiantesService.getAll()).data ??
+          []) as LegacyStudentRecord[];
         const normalized = normalizeStudents(estudiantes);
-        // If the external/local source returned entries, use them.
-        // Otherwise keep the current (seeded) in-memory list and persist it.
-        if (normalized.length) {
-          this.estudiantes = normalized;
-          this.persistStudents();
-          return this.estudiantes;
-        }
-        // Persist current seeded data so subsequent loads read it from storage
+        this.estudiantes = normalized;
         this.persistStudents();
         return this.estudiantes;
       } finally {
@@ -386,6 +411,25 @@ export const useEstudiantesStore = defineStore("estudiantes", {
       this.persistStudents();
       await estudiantesService.delete(id);
     },
+    upsertEstudiante(student: Partial<Student> & { id: number }) {
+      const normalizedStudent = mergeStudent(
+        this.estudiantes.find(
+          (existingStudent) => existingStudent.id === student.id,
+        ),
+        student,
+      );
+      this.estudiantes = this.estudiantes.some(
+        (existingStudent) => existingStudent.id === student.id,
+      )
+        ? this.estudiantes.map((existingStudent) =>
+            existingStudent.id === student.id
+              ? normalizedStudent
+              : existingStudent,
+          )
+        : [normalizedStudent, ...this.estudiantes];
+      this.persistStudents();
+      return normalizedStudent;
+    },
     async fetchGuardians(studentId: number) {
       // Cache guard: if we already have guardians for this student, return cached
       if (this.guardians[studentId]) {
@@ -393,9 +437,12 @@ export const useEstudiantesStore = defineStore("estudiantes", {
       }
       this.loadingGuardians = true;
       try {
-        const guardians = (await estudiantesService.getGuardians(
-          studentId,
-        )) as Array<Partial<Guardian> & { id?: string | number }>;
+        const guardians =
+          (
+            (await estudiantesService.getGuardians(studentId)) as unknown as {
+              data?: Array<Partial<Guardian> & { id?: string | number }>;
+            }
+          ).data ?? [];
         this.guardians[studentId] = normalizeGuardians(guardians);
         return this.guardians[studentId];
       } finally {

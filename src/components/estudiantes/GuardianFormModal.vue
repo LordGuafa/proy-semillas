@@ -4,7 +4,7 @@ import BaseButton from "@/components/ui/BaseButton.vue";
 import BaseInput from "@/components/ui/BaseInput.vue";
 import BaseModal from "@/components/ui/BaseModal.vue";
 import BaseSelect from "@/components/ui/BaseSelect.vue";
-import type Guardian from "@/types/guardian";
+import type { Guardian } from "@/types/guardian";
 import { useEstudiantesStore } from "@/stores/estudiantesStore";
 
 const props = defineProps<{
@@ -134,7 +134,7 @@ async function saveGuardian() {
   submitAttempted.value = true;
   if (!validate()) return;
 
-  const payload: Omit<Guardian, "id"> = {
+  const payload = {
     firstName: form.firstName.trim(),
     lastName: form.lastName.trim(),
     documentType: form.documentType,
@@ -153,7 +153,7 @@ async function saveGuardian() {
     department: form.department.trim(),
     isMainGuardian: form.isMainGuardian,
     isPaymentResponsible: form.isPaymentResponsible,
-  };
+  } as unknown as Guardian;
 
   if (props.guardian) {
     await estudiantesStore.updateGuardian(

@@ -3,7 +3,7 @@ import { computed } from "vue";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/vue/24/outline";
 import BaseBadge from "@/components/ui/BaseBadge.vue";
 import BaseCard from "@/components/ui/BaseCard.vue";
-import type Guardian from "@/types/guardian";
+import type { Guardian } from "@/types/guardian";
 
 const props = defineProps<{
   guardian: Guardian;

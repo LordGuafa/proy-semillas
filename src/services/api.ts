@@ -1,218 +1,129 @@
 import axios from "axios";
-import type { Router } from "vue-router";
-import { readJSON, writeJSON } from "@/utils/storage";
-import type { Campo, FormularioTipo } from "@/types/formulario";
-import type Guardian from "@/types/guardian";
-
-type ApiRecord = Record<string, unknown>;
+import router from "@/router";
+import { useAuthStore } from "@/stores/authStore";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "",
+  baseURL: import.meta.env.VITE_API_URL,
+  headers: { "Content-Type": "application/json" },
 });
 
-let routerRef: Router | null = null;
-
-export function setApiRouter(router: Router): void {
-  routerRef = router;
-}
-
 api.interceptors.request.use((config) => {
-  const token = readJSON<string | null>("semillas-auth-token", null);
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  const auth = useAuthStore();
+  if (auth.token) {
+    config.headers = config.headers ?? {};
+    config.headers.Authorization = `Bearer ${auth.token}`;
+  }
   return config;
 });
 
 api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    if (error?.response?.status === 401) {
-      writeJSON("semillas-auth-token", null);
-      writeJSON("semillas-auth-user", null);
-      if (routerRef) await routerRef.push("/login");
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      useAuthStore().logout();
+      router.push("/login");
     }
-    return Promise.reject(error);
+    return Promise.reject(err);
   },
 );
 
-function remoteEnabled(): boolean {
-  return Boolean(import.meta.env.VITE_API_URL);
-}
-
-function readList<T>(key: string, fallback: T[]): T[] {
-  return readJSON<T[]>(key, fallback);
-}
-
 export const estudiantesService = {
-  async getAll() {
-    if (remoteEnabled()) return (await api.get("/estudiantes")).data;
-    return readList("semillas-students", []);
-  },
-  async getById(id: string | number) {
-    if (remoteEnabled()) return (await api.get(`/estudiantes/${id}`)).data;
-    return (
-      readList<ApiRecord>("semillas-students", []).find(
-        (item) => String(item.id) === String(id),
-      ) ?? null
-    );
-  },
-  async create(payload: ApiRecord) {
-    if (remoteEnabled()) return (await api.post("/estudiantes", payload)).data;
-    const current = readList<ApiRecord>("semillas-students", []);
-    const next = [{ ...payload, id: payload.id ?? Date.now() }, ...current];
-    writeJSON("semillas-students", next);
-    return next;
-  },
-  async update(id: string | number, payload: ApiRecord) {
-    if (remoteEnabled())
-      return (await api.put(`/estudiantes/${id}`, payload)).data;
-    const current = readList<ApiRecord>("semillas-students", []);
-    const next = current.map((item) =>
-      String(item.id) === String(id) ? { ...item, ...payload } : item,
-    );
-    writeJSON("semillas-students", next);
-    return next;
-  },
-  async delete(id: string | number) {
-    if (remoteEnabled()) return (await api.delete(`/estudiantes/${id}`)).data;
-    const current = readList<ApiRecord>("semillas-students", []);
-    const next = current.filter((item) => String(item.id) !== String(id));
-    writeJSON("semillas-students", next);
-    return next;
-  },
-  async getGuardians(studentId: string | number) {
-    if (remoteEnabled())
-      return (await api.get(`/estudiantes/${studentId}/guardians`)).data;
-    return readList<Guardian>(`semillas-guardians-${studentId}`, []);
-  },
-  async createGuardian(studentId: string | number, payload: ApiRecord) {
-    if (remoteEnabled())
-      return (await api.post(`/estudiantes/${studentId}/guardians`, payload))
-        .data;
-    const key = `semillas-guardians-${studentId}`;
-    const current = readList<ApiRecord>(key, []);
-    const next = [{ ...payload, id: payload.id ?? Date.now() }, ...current];
-    writeJSON(key, next);
-    return next;
-  },
-  async updateGuardian(
-    studentId: string | number,
-    guardianId: string | number,
-    payload: ApiRecord,
-  ) {
-    if (remoteEnabled())
-      return (
-        await api.put(
-          `/estudiantes/${studentId}/guardians/${guardianId}`,
-          payload,
-        )
-      ).data;
-    const key = `semillas-guardians-${studentId}`;
-    const current = readList<ApiRecord>(key, []);
-    const next = current.map((item) =>
-      String(item.id) === String(guardianId) ? { ...item, ...payload } : item,
-    );
-    writeJSON(key, next);
-    return next;
-  },
-  async deleteGuardian(
-    studentId: string | number,
-    guardianId: string | number,
-  ) {
-    if (remoteEnabled())
-      return (
-        await api.delete(`/estudiantes/${studentId}/guardians/${guardianId}`)
-      ).data;
-    const key = `semillas-guardians-${studentId}`;
-    const current = readList<ApiRecord>(key, []);
-    const next = current.filter(
-      (item) => String(item.id) !== String(guardianId),
-    );
-    writeJSON(key, next);
-    return next;
-  },
+  getAll: (params = {}) => api.get("/students/all", { params }),
+  getById: (id: string | number) => api.get(`/students/${id}`),
+  create: (data: unknown) => api.post("/students", data),
+  update: (id: string | number, data: unknown) =>
+    api.patch(`/students/${id}`, data),
+  remove: (id: string | number) => api.delete(`/students/${id}`),
+  delete: (id: string | number) => api.delete(`/students/${id}`),
+  getAcudientes: (id: number) => api.get(`/students/${id}/guardians`),
+  getGuardians: (id: string | number) =>
+    api.get(`/students/${id}/guardians`),
+  addAcudiente: (id: number, data: unknown) =>
+    api.post(`/students/${id}/guardians`, data),
+  createGuardian: (id: string | number, data: unknown) =>
+    api.post(`/students/${id}/guardians`, data),
+  updateAcudiente: (id: number, aid: number, data: unknown) =>
+    api.patch(`/students/${id}/guardians/${aid}`, data),
+  updateGuardian: (id: string | number, aid: string | number, data: unknown) =>
+    api.patch(`/students/${id}/guardians/${aid}`, data),
+  removeAcudiente: (id: number, aid: number) =>
+    api.delete(`/students/${id}/guardians/${aid}`),
+  deleteGuardian: (id: string | number, aid: string | number) =>
+    api.delete(`/students/${id}/guardians/${aid}`),
+  setPrincipal: (id: number, aid: number) =>
+    api.patch(`/students/${id}/guardians/${aid}/principal`),
+};
+
+export const inscripcionesService = {
+  getAll: (params = {}) => api.get("/inscripciones", { params }),
+  getById: (id: number) => api.get(`/inscripciones/${id}`),
+  aprobar: (id: number) => api.patch(`/inscripciones/${id}/aprobar`),
+  updateEstado: (id: number, estado: string) =>
+    api.patch(`/inscripciones/${id}/estado`, { estado }),
+};
+
+export const formulariosService = {
+  getActivo: (tipo: string) => api.get(`/formularios/${tipo}`),
+  save: (tipo: string, campos: unknown) =>
+    api.put(`/formularios/${tipo}`, { campos }),
+  getHistorial: (tipo: string) => api.get(`/formularios/${tipo}/historial`),
+};
+
+export const franjasService = {
+  getAll: () => api.get("/franjas"),
+  create: (data: unknown) => api.post("/franjas", data),
+  remove: (id: number) => api.delete(`/franjas/${id}`),
+};
+
+export const formAspirantesService = {
+  getAll: (params = {}) => api.get("/form-aspirantes", { params }),
+  getByCorreo: (correo: string) => api.get(`/form-aspirantes/${correo}`),
 };
 
 export const aspirantesService = {
-  async getAll() {
-    if (remoteEnabled()) return (await api.get("/aspirantes")).data;
-    return readList("semillas-applicants", []);
-  },
-  async approve(id: string | number) {
-    if (remoteEnabled())
-      return (await api.post(`/aspirantes/${id}/approve`)).data;
-    return id;
-  },
-  async reject(id: string | number, motivo?: string) {
-    if (remoteEnabled())
-      return (await api.post(`/aspirantes/${id}/reject`, { motivo })).data;
-    return { id, motivo };
-  },
-  async updateInterview(id: string | number, date: string) {
-    if (remoteEnabled())
-      return (await api.patch(`/aspirantes/${id}/interview`, { date })).data;
-    return { id, date };
-  },
+  getAll: () => api.get("/aspirantes"),
+  approve: (id: string | number) => api.post(`/aspirantes/${id}/approve`),
+  reject: (id: string | number, motivo?: string) =>
+    api.post(`/aspirantes/${id}/reject`, { motivo }),
+  updateInterview: (id: string | number, date: string) =>
+    api.patch(`/aspirantes/${id}/interview`, { date }),
 };
 
 export const formularioService = {
-  async getFields() {
-    return formularioService.getByType("ENTREVISTA");
-  },
-  async saveFields(fields: ApiRecord[]) {
-    return formularioService.saveByType(
-      "ENTREVISTA",
-      fields as unknown as Campo[],
-    );
-  },
-  async getByType(tipo: FormularioTipo) {
-    if (remoteEnabled()) return (await api.get(`/formularios/${tipo}`)).data;
-    return readJSON<Campo[]>(`semillas-formularios-${tipo}`, []);
-  },
-  async saveByType(tipo: FormularioTipo, fields: Campo[]) {
-    if (remoteEnabled())
-      return (await api.put(`/formularios/${tipo}`, { campos: fields })).data;
-    writeJSON(`semillas-formularios-${tipo}`, fields);
-    return fields;
-  },
-  async getLegacyFields() {
-    return readJSON("semillas-form-fields", []);
-  },
-  async saveLegacyFields(fields: ApiRecord[]) {
-    if (remoteEnabled())
-      return (await api.put("/formulario/campos", { fields })).data;
-    writeJSON("semillas-form-fields", fields);
-    return fields;
-  },
+  getFields: () => formulariosService.getActivo("entrevista"),
+  saveFields: (fields: unknown) =>
+    formulariosService.save("entrevista", fields),
+  getByType: (tipo: string) => formulariosService.getActivo(tipo),
+  saveByType: (tipo: string, fields: unknown) =>
+    formulariosService.save(tipo, fields),
+  getLegacyFields: () => api.get("/formulario/campos"),
+  saveLegacyFields: (fields: unknown) =>
+    api.put("/formulario/campos", { fields }),
 };
 
 export const gruposService = {
-  async getAll() {
-    if (remoteEnabled()) return (await api.get("/grupos")).data;
-    return readJSON("semillas-groups", []);
-  },
-  async create(payload: ApiRecord) {
-    if (remoteEnabled()) return (await api.post("/grupos", payload)).data;
-    const current = readList<ApiRecord>("semillas-groups", []);
-    const next = [{ ...payload, id: payload.id ?? Date.now() }, ...current];
-    writeJSON("semillas-groups", next);
-    return next;
-  },
-  async update(id: string | number, payload: ApiRecord) {
-    if (remoteEnabled()) return (await api.put(`/grupos/${id}`, payload)).data;
-    const current = readList<ApiRecord>("semillas-groups", []);
-    const next = current.map((item) =>
-      String(item.id) === String(id) ? { ...item, ...payload } : item,
-    );
-    writeJSON("semillas-groups", next);
-    return next;
-  },
-  async delete(id: string | number) {
-    if (remoteEnabled()) return (await api.delete(`/grupos/${id}`)).data;
-    const current = readList<ApiRecord>("semillas-groups", []);
-    const next = current.filter((item) => String(item.id) !== String(id));
-    writeJSON("semillas-groups", next);
-    return next;
-  },
+  getAll: () => api.get("/grupos"),
+  create: (payload: unknown) => api.post("/grupos", payload),
+  update: (id: string | number, payload: unknown) =>
+    api.put(`/grupos/${id}`, payload),
+  delete: (id: string | number) => api.delete(`/grupos/${id}`),
+};
+
+export const matriculasService = {
+  getAll: (params: unknown = {}) => api.get("/inscripciones", { params }),
+  getById: (id: string | number) => api.get(`/inscripciones/${id}`),
+  updateStatus: (id: string | number, payload: unknown) =>
+    api.patch(`/inscripciones/${id}/estado`, payload),
+  assignInterview: (id: string | number, payload: unknown) =>
+    api.patch(`/inscripciones/${id}/entrevista`, payload),
+  approve: (id: string | number) => api.patch(`/inscripciones/${id}/aprobar`),
+};
+
+export const authService = {
+  login: (creds: { nombreUsuario: string; password: string }) =>
+    api.post("/auth/login", creds),
+  logout: () => api.post("/auth/logout"),
+  me: () => api.get("/auth/me"),
 };
 
 export default api;

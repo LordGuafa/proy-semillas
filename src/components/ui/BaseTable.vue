@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 
 type TableColumn = { key: string; label: string; sortable?: boolean }
-const props = withDefaults(defineProps<{ columns: TableColumn[]; rows: Array<Record<string, any>>; loading?: boolean; emptyMessage?: string; page?: number; perPage?: number; total?: number; actionsLabel?: string }>(), { loading: false, emptyMessage: 'No hay datos disponibles.', page: 1, perPage: 10, total: 0, actionsLabel: 'Acciones' })
+const props = withDefaults(defineProps<{ columns: TableColumn[]; rows: Array<Record<string, any>>; loading?: boolean; emptyMessage?: string; page?: number; perPage?: number; total?: number; actionsLabel?: string; rowClass?: string | ((row: Record<string, any>) => string); rowIdPrefix?: string }>(), { loading: false, emptyMessage: 'No hay datos disponibles.', page: 1, perPage: 10, total: 0, actionsLabel: 'Acciones', rowIdPrefix: 'row' })
 const emit = defineEmits<{
     (event: 'update:page', value: number): void
     (event: 'row-click', row: Record<string, any>): void
@@ -10,6 +10,14 @@ const emit = defineEmits<{
 const totalPages = computed(() => Math.max(1, Math.ceil((props.total || props.rows.length) / (props.perPage || 1))))
 function goToPage(nextPage: number) { if (nextPage < 1 || nextPage > totalPages.value) return; emit('update:page', nextPage) }
 function formatValue(value: unknown): string { if (value === null || value === undefined || value === '') return '—'; if (value instanceof Date) return value.toLocaleDateString('es-CO'); if (typeof value === 'object') return JSON.stringify(value); return String(value) }
+function resolveRowClass(row: Record<string, any>): string {
+    if (!props.rowClass) return ''
+    return typeof props.rowClass === 'function' ? props.rowClass(row) : props.rowClass
+}
+
+function resolveRowId(row: Record<string, any>, rowIndex: number): string {
+    return `${props.rowIdPrefix}-${String(row.id ?? rowIndex)}`
+}
 </script>
 
 <template>
@@ -35,7 +43,9 @@ function formatValue(value: unknown): string { if (value === null || value === u
                             emptyMessage }}</td>
                     </tr>
                     <tr v-for="(row, rowIndex) in rows" :key="String(row.id ?? rowIndex)"
-                        class="odd:bg-white even:bg-gray-50 hover:bg-primary/5 cursor-pointer"
+                        :id="resolveRowId(row, rowIndex)"
+                        class="odd:bg-white even:bg-gray-50 hover:bg-primary/5 cursor-pointer transition"
+                        :class="resolveRowClass(row)"
                         role="button"
                         tabindex="0"
                         @click="$emit('row-click', row)"
