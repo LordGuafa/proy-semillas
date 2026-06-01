@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/vue/24/outline";
 import BaseBadge from "@/components/ui/BaseBadge.vue";
 import BaseCard from "@/components/ui/BaseCard.vue";
+import { nombreCompleto } from "@/types/persona";
 import type { Guardian } from "@/types/guardian";
 
 const props = defineProps<{
@@ -15,7 +16,60 @@ const emit = defineEmits<{
 }>();
 
 const guardianName = computed(() =>
-  `${props.guardian.firstName} ${props.guardian.lastName}`.trim(),
+  nombreCompleto({
+    primerNombre: props.guardian.primerNombre ?? props.guardian.firstName ?? "",
+    segundoNombre: props.guardian.segundoNombre,
+    primerApellido: props.guardian.primerApellido ?? props.guardian.lastName ?? "",
+    segundoApellido: props.guardian.segundoApellido,
+  }),
+);
+
+const guardianDocument = computed(() =>
+  `${props.guardian.documentType ?? props.guardian.tipoDocumento ?? ""} · ${
+    props.guardian.documentNumber ?? props.guardian.documentoIdentidad ?? "—"
+  }`,
+);
+
+const guardianWorkplace = computed(
+  () => props.guardian.workplace ?? props.guardian.nombreEmpresaTrabajo ?? "—",
+);
+
+const guardianAddress = computed(
+  () => props.guardian.homeAddress ?? props.guardian.direccionCasa ?? "—",
+);
+
+const guardianCityDepartment = computed(() => {
+  const city = props.guardian.city ?? props.guardian.ciudadCasa ?? "";
+  const department = props.guardian.department ?? props.guardian.departamentoCasa ?? "";
+  const value = [city, department].filter(Boolean).join(", ");
+  return value || "—";
+});
+
+const guardianOccupation = computed(
+  () => props.guardian.occupation ?? props.guardian.ocupacion ?? "—",
+);
+
+const guardianPhone = computed(
+  () => props.guardian.phone ?? props.guardian.telefono ?? "—",
+);
+
+const guardianEmail = computed(
+  () => props.guardian.email ?? props.guardian.correoElectronico ?? "—",
+);
+
+const guardianKinship = computed(
+  () => props.guardian.kinship ?? props.guardian.parentesco ?? "—",
+);
+
+const guardianIsMain = computed(
+  () => props.guardian.isMainGuardian ?? props.guardian.esPrincipal ?? false,
+);
+
+const guardianIsPaymentResponsible = computed(
+  () =>
+    props.guardian.isPaymentResponsible ??
+    props.guardian.esResponsablePago ??
+    false,
 );
 
 function formatDate(dateValue?: Date) {
@@ -30,18 +84,18 @@ function formatDate(dateValue?: Date) {
   <BaseCard>
     <div class="space-y-4">
       <div class="flex items-start justify-between gap-4">
-        <div class="space-y-1">
-          <div class="flex flex-wrap items-center gap-2">
+        <div class="space-y-2">
+          <div class="space-y-0.5">
             <h3 class="text-lg font-semibold text-primary">
-              {{ guardianName }}
+              {{ guardianName || "Sin nombre" }}
             </h3>
-            <span class="text-sm text-accent">{{ guardian.kinship }}</span>
+            <p class="text-sm text-accent">{{ guardianKinship }}</p>
           </div>
           <div class="flex flex-wrap gap-2">
-            <BaseBadge v-if="guardian.isMainGuardian" variant="active"
+            <BaseBadge v-if="guardianIsMain" variant="active"
               >Acudiente principal</BaseBadge
             >
-            <BaseBadge v-if="guardian.isPaymentResponsible" variant="pending"
+            <BaseBadge v-if="guardianIsPaymentResponsible" variant="pending"
               >Responsable de pago</BaseBadge
             >
           </div>
@@ -73,48 +127,50 @@ function formatDate(dateValue?: Date) {
             Tipo y N.° documento
           </p>
           <p class="text-sm text-gray-900">
-            {{ guardian.documentType }} · {{ guardian.documentNumber }}
+            {{ guardianDocument }}
           </p>
         </div>
         <div>
           <p class="text-xs uppercase tracking-wide text-gray-400">
-            Fecha de nacimiento
+            Teléfono
           </p>
           <p class="text-sm text-gray-900">
-            {{ formatDate(guardian.birthdate) }}
+            {{ guardianPhone }}
           </p>
-        </div>
-        <div>
-          <p class="text-xs uppercase tracking-wide text-gray-400">Teléfono</p>
-          <p class="text-sm text-gray-900">{{ guardian.phone }}</p>
         </div>
         <div>
           <p class="text-xs uppercase tracking-wide text-gray-400">
             Correo electrónico
           </p>
-          <p class="text-sm text-gray-900">{{ guardian.email }}</p>
+          <p class="text-sm text-gray-900">{{ guardianEmail }}</p>
         </div>
         <div>
           <p class="text-xs uppercase tracking-wide text-gray-400">Ocupación</p>
-          <p class="text-sm text-gray-900">{{ guardian.occupation }}</p>
+          <p class="text-sm text-gray-900">{{ guardianOccupation }}</p>
         </div>
         <div>
           <p class="text-xs uppercase tracking-wide text-gray-400">
             Lugar de trabajo
           </p>
-          <p class="text-sm text-gray-900">{{ guardian.workplace }}</p>
+          <p class="text-sm text-gray-900">{{ guardianWorkplace }}</p>
         </div>
         <div>
-          <p class="text-xs uppercase tracking-wide text-gray-400">Dirección</p>
-          <p class="text-sm text-gray-900">{{ guardian.homeAddress }}</p>
+          <p class="text-xs uppercase tracking-wide text-gray-400">
+            Dirección de casa
+          </p>
+          <p class="text-sm text-gray-900">{{ guardianAddress }}</p>
         </div>
         <div>
           <p class="text-xs uppercase tracking-wide text-gray-400">
             Ciudad, Departamento
           </p>
-          <p class="text-sm text-gray-900">
-            {{ guardian.city }}, {{ guardian.department }}
+          <p class="text-sm text-gray-900">{{ guardianCityDepartment }}</p>
+        </div>
+        <div>
+          <p class="text-xs uppercase tracking-wide text-gray-400">
+            Fecha de nacimiento
           </p>
+          <p class="text-sm text-gray-900">{{ formatDate(guardian.birthdate) }}</p>
         </div>
         <div v-if="guardian.placeOfBirth" class="md:col-span-2">
           <p class="text-xs uppercase tracking-wide text-gray-400">

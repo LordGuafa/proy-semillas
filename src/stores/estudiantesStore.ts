@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { estudiantesService } from "@/services/api";
+import { estudiantesService, acudientesService } from "@/services/api";
 import { readJSON, writeJSON } from "@/utils/storage";
 import type { Guardian } from "@/types/guardian";
 import type { Student } from "@/types/student";
@@ -83,7 +83,9 @@ function normalizeStudentRecord(
   const names = splitFullName(
     record.fullName ?? `${record.firstname ?? ""} ${record.lastname ?? ""}`,
   );
-  const numericId = Number(record.id ?? (record as any).id_persona ?? (record as any).id_persona);
+  const numericId = Number(
+    record.id ?? (record as any).id_persona ?? (record as any).id_persona,
+  );
   const fieldValues = record.fieldValues ?? {};
 
   const primerNombre =
@@ -95,48 +97,104 @@ function normalizeStudentRecord(
     id: Number.isFinite(numericId) ? numericId : index + 1,
     usuarioSistemaId: undefined,
     documentoIdentidad: String(
-      (record as any).documento_identidad ?? record.documentoIdentidad ??
-        fieldValues.documentoIdentidad ?? fieldValues.documentNumber ?? "",
+      (record as any).documento_identidad ??
+        record.documentoIdentidad ??
+        fieldValues.documentoIdentidad ??
+        fieldValues.documentNumber ??
+        "",
     ),
     tipoDocumento: String(
-      (record as any).tipo_documento ?? record.tipoDocumento ?? fieldValues.tipoDocumento ?? "CC",
+      (record as any).tipo_documento ??
+        record.tipoDocumento ??
+        fieldValues.tipoDocumento ??
+        "CC",
     ) as Student["tipoDocumento"],
     primerNombre: primerNombre,
     segundoNombre: (record as any).segundo_nombre ?? undefined,
     primerApellido: primerApellido,
     segundoApellido: (record as any).segundo_apellido ?? undefined,
     correoElectronico:
-      String((record as any).correo_electronico ?? record.correoElectronico ?? fieldValues.correoElectronico ?? "") || undefined,
+      String(
+        (record as any).correo_electronico ??
+          record.correoElectronico ??
+          fieldValues.correoElectronico ??
+          "",
+      ) || undefined,
     telefono:
-      String((record as any).telefono ?? record.telefono ?? fieldValues.telefono ?? "") || undefined,
+      String(
+        (record as any).telefono ??
+          record.telefono ??
+          fieldValues.telefono ??
+          "",
+      ) || undefined,
     fechaNacimiento:
-      String((record as any).fecha_nacimiento ?? record.fechaNacimiento ?? fieldValues.fechaNacimiento ?? "") || undefined,
+      String(
+        (record as any).fecha_nacimiento ??
+          record.fechaNacimiento ??
+          fieldValues.fechaNacimiento ??
+          "",
+      ) || undefined,
     paisNacimiento:
-      String((record as any).pais_nacimiento ?? record.paisNacimiento ?? fieldValues.paisNacimiento ?? "") || undefined,
+      String(
+        (record as any).pais_nacimiento ??
+          record.paisNacimiento ??
+          fieldValues.paisNacimiento ??
+          "",
+      ) || undefined,
     departamentoNacimiento:
       String(
-        (record as any).departamento_nacimiento ?? record.departamentoNacimiento ?? fieldValues.departamentoNacimiento ?? "",
+        (record as any).departamento_nacimiento ??
+          record.departamentoNacimiento ??
+          fieldValues.departamentoNacimiento ??
+          "",
       ) || undefined,
     ciudadNacimiento:
-      String((record as any).ciudad_nacimiento ?? record.ciudadNacimiento ?? fieldValues.ciudadNacimiento ?? "") || undefined,
+      String(
+        (record as any).ciudad_nacimiento ??
+          record.ciudadNacimiento ??
+          fieldValues.ciudadNacimiento ??
+          "",
+      ) || undefined,
     createdAt: String(
-      (record as any).created_at ?? (record as { createdAt?: string }).createdAt ?? new Date().toISOString(),
+      (record as any).created_at ??
+        (record as { createdAt?: string }).createdAt ??
+        new Date().toISOString(),
     ),
     updatedAt: String(
-      (record as any).updated_at ?? (record as { updatedAt?: string }).updatedAt ?? new Date().toISOString(),
+      (record as any).updated_at ??
+        (record as { updatedAt?: string }).updatedAt ??
+        new Date().toISOString(),
     ),
     direccionResidencia:
-      (record as any).direccion_residencia ?? record.homeAddress ?? String(fieldValues.homeAddress ?? fieldValues.address ?? ""),
+      (record as any).direccion_residencia ??
+      record.homeAddress ??
+      String(fieldValues.homeAddress ?? fieldValues.address ?? ""),
     ciudadResidencia:
-      ((record as any).ciudad_residencia ?? record.city ?? String(fieldValues.city ?? "")) || undefined,
+      ((record as any).ciudad_residencia ??
+        record.city ??
+        String(fieldValues.city ?? "")) ||
+      undefined,
     departamentoResidencia:
-      ((record as any).departamento_residencia ?? record.department ?? String(fieldValues.department ?? "")) || undefined,
-    estrato: Number((record as any).estrato ?? record.strata ?? fieldValues.strata ?? 0) || 0,
-    tieneAlmuerzo: (record as any).tiene_almuerzo ?? record.hasLunch ?? parseBoolean(fieldValues.hasLunch),
+      ((record as any).departamento_residencia ??
+        record.department ??
+        String(fieldValues.department ?? "")) ||
+      undefined,
+    estrato:
+      Number(
+        (record as any).estrato ?? record.strata ?? fieldValues.strata ?? 0,
+      ) || 0,
+    tieneAlmuerzo:
+      (record as any).tiene_almuerzo ??
+      record.hasLunch ??
+      parseBoolean(fieldValues.hasLunch),
     tieneTranporteRuta:
-      (record as any).tiene_transporte_ruta ?? record.hasTransport ?? parseBoolean(fieldValues.hasTransport),
+      (record as any).tiene_transporte_ruta ??
+      record.hasTransport ??
+      parseBoolean(fieldValues.hasTransport),
     fotoUrl: (record as any).foto_url ?? record.photoURL ?? record.photoUrl,
-    estado: normalizeStatus((record as any).estado ?? record.status) as Student["estado"],
+    estado: normalizeStatus(
+      (record as any).estado ?? record.status,
+    ) as Student["estado"],
     status: normalizeStatus((record as any).estado ?? record.status),
     firstname: primerNombre,
     lastname: primerApellido,
@@ -270,6 +328,31 @@ function mergeStudent(
   return cloneStudent({ ...base, ...next, id: next.id } as Student);
 }
 
+function buildGuardianApiPayload(
+  guardian: Partial<Guardian>,
+  studentId: number,
+): Record<string, unknown> {
+  return {
+    correo_electronico: guardian.email ?? guardian.correoElectronico ?? "",
+    documento_identidad:
+      guardian.documentNumber ?? guardian.documentoIdentidad ?? "",
+    es_principal: Boolean(guardian.isMainGuardian ?? guardian.esPrincipal),
+    es_principal_estudiante: Boolean(
+      guardian.isMainGuardian ?? guardian.esPrincipal,
+    ),
+    es_responsable_pago: Boolean(
+      guardian.isPaymentResponsible ?? guardian.esResponsablePago,
+    ),
+    id_estudiante: studentId,
+    ocupacion: guardian.occupation ?? guardian.ocupacion ?? "",
+    parentesco: guardian.kinship ?? guardian.parentesco ?? "",
+    primer_apellido: guardian.lastName ?? guardian.primerApellido ?? "",
+    primer_nombre: guardian.firstName ?? guardian.primerNombre ?? "",
+    telefono: guardian.phone ?? guardian.telefono ?? "",
+    tipo_documento: guardian.documentType ?? guardian.tipoDocumento ?? "CC",
+  };
+}
+
 export const useEstudiantesStore = defineStore("estudiantes", {
   state: () => {
     const persisted = readJSON<LegacyStudentRecord[]>(storageKey, []);
@@ -334,19 +417,29 @@ export const useEstudiantesStore = defineStore("estudiantes", {
       try {
         // DEBUG: log API call and response to help trace missing students
         // eslint-disable-next-line no-console
-        console.log('[estudiantes] fetching /students/all...');
+        console.log("[estudiantes] fetching /students/all...");
         const resp = await estudiantesService.getAll();
         // eslint-disable-next-line no-console
-        console.log('[estudiantes] raw response:', resp && resp.data ? resp.data : resp);
+        console.log(
+          "[estudiantes] raw response:",
+          resp && resp.data ? resp.data : resp,
+        );
         const data = resp.data ?? {};
         const estudiantesArr = Array.isArray((data as any).students)
           ? (data as any).students
           : Array.isArray(data)
-          ? (data as any)
-          : [];
-        const normalized = normalizeStudents(estudiantesArr as LegacyStudentRecord[]);
+            ? (data as any)
+            : [];
+        const normalized = normalizeStudents(
+          estudiantesArr as LegacyStudentRecord[],
+        );
         // eslint-disable-next-line no-console
-        console.log('[estudiantes] normalized count:', normalized.length, 'sample:', normalized.slice(0,3));
+        console.log(
+          "[estudiantes] normalized count:",
+          normalized.length,
+          "sample:",
+          normalized.slice(0, 3),
+        );
         this.estudiantes = normalized;
         this.persistStudents();
         return this.estudiantes;
@@ -446,13 +539,107 @@ export const useEstudiantesStore = defineStore("estudiantes", {
       }
       this.loadingGuardians = true;
       try {
-        const guardians =
-          (
-            (await estudiantesService.getGuardians(studentId)) as unknown as {
-              data?: Array<Partial<Guardian> & { id?: string | number }>;
-            }
-          ).data ?? [];
-        this.guardians[studentId] = normalizeGuardians(guardians);
+        const resp = (await acudientesService.getByStudent(
+          studentId,
+        )) as unknown;
+        const raw = (resp && (resp as any).data) ?? resp;
+        let guardians: Array<Partial<Guardian> & { id?: string | number }> = [];
+        if (Array.isArray(raw)) {
+          guardians = raw;
+        } else if (raw && Array.isArray((raw as any).parents)) {
+          guardians = (raw as any).parents;
+        } else if (raw && Array.isArray((raw as any).acudientes)) {
+          guardians = (raw as any).acudientes;
+        } else if (raw && Array.isArray((raw as any).guardians)) {
+          guardians = (raw as any).guardians;
+        } else if (raw && (raw as any).parent) {
+          guardians = [(raw as any).parent];
+        } else {
+          guardians = [];
+        }
+
+        // Map backend snake_case fields to the shapes expected by normalizeGuardianRecord/UI
+        const mapped = guardians.map((g: any) => ({
+          // ids
+          id: g.id ?? g.id_persona ?? g.idPersona,
+          usuarioSistemaId:
+            g.usuario_sistema_id ?? g.usuarioSistemaId ?? g.usuario_sistema_id,
+          // document
+          documentoIdentidad:
+            g.documento_identidad ?? g.documentoIdentidad ?? g.document_number,
+          documentNumber:
+            g.documento_identidad ?? g.documentNumber ?? g.documento_identidad,
+          tipoDocumento: g.tipo_documento ?? g.tipoDocumento,
+          documentType: g.tipo_documento ?? g.documentType,
+          // names
+          primerNombre: g.primer_nombre ?? g.primerNombre ?? g.firstName,
+          firstName: g.primer_nombre ?? g.firstName,
+          segundoNombre: g.segundo_nombre ?? g.segundoNombre ?? g.secondName,
+          primerApellido: g.primer_apellido ?? g.primerApellido ?? g.lastName,
+          segundoApellido: g.segundo_apellido ?? g.segundoApellido,
+          // contact
+          correoElectronico:
+            g.correo_electronico ?? g.correoElectronico ?? g.email,
+          email: g.correo_electronico ?? g.email,
+          telefono: g.telefono ?? g.phone,
+          phone: g.telefono ?? g.phone,
+          // birth & place
+          fechaNacimiento:
+            g.fecha_nacimiento ?? g.fechaNacimiento ?? g.birthdate,
+          birthdate: g.fecha_nacimiento
+            ? new Date(g.fecha_nacimiento)
+            : g.birthdate
+              ? new Date(g.birthdate)
+              : undefined,
+          paisNacimiento: g.pais_nacimiento ?? g.paisNacimiento,
+          departamentoNacimiento:
+            g.departamento_nacimiento ?? g.departamentoNacimiento,
+          ciudadNacimiento: g.ciudad_nacimiento ?? g.ciudadNacimiento,
+          // address
+          direccionCasa: g.direccion_casa ?? g.homeAddress ?? g.direccionCasa,
+          homeAddress: g.direccion_casa ?? g.homeAddress,
+          ciudadCasa: g.ciudad_casa ?? g.city ?? g.ciudadCasa,
+          city: g.ciudad_casa ?? g.city,
+          departamentoCasa:
+            g.departamento_casa ?? g.department ?? g.departamentoCasa,
+          department: g.departamento_casa ?? g.department,
+          nombreEmpresaTrabajo:
+            g.nombre_empresa_trabajo ?? g.workplace ?? g.nombreEmpresaTrabajo,
+          workplace: g.nombre_empresa_trabajo ?? g.workplace,
+          ocupacion: g.ocupacion ?? g.occupation,
+          occupation: g.ocupacion ?? g.occupation,
+          // flags
+          esPrincipal:
+            g.es_principal_estudiante ??
+            g.es_principal ??
+            g.isMainGuardian ??
+            false,
+          isMainGuardian: Boolean(
+            g.es_principal_estudiante ??
+            g.is_principal ??
+            g.isMainGuardian ??
+            false,
+          ),
+          esResponsablePago:
+            g.es_responsable_pago ??
+            g.esResponsablePago ??
+            g.isPaymentResponsible ??
+            false,
+          isPaymentResponsible: Boolean(
+            g.es_responsable_pago ??
+            g.esResponsablePago ??
+            g.isPaymentResponsible ??
+            false,
+          ),
+          // metadata
+          createdAt: g.created_at ?? g.createdAt,
+          updatedAt: g.updated_at ?? g.updatedAt,
+          parentesco: g.parentesco ?? g.kinship,
+          kinship: g.parentesco ?? g.kinship,
+          fotoUrl: g.firma_url ?? g.foto_url ?? g.firmaUrl,
+        }));
+
+        this.guardians[studentId] = normalizeGuardians(mapped as any);
         return this.guardians[studentId];
       } finally {
         this.loadingGuardians = false;
@@ -474,10 +661,24 @@ export const useEstudiantesStore = defineStore("estudiantes", {
         ...nextGuardians,
         nextGuardian,
       ]);
-      await estudiantesService.createGuardian(
-        studentId,
-        nextGuardian as unknown as Record<string, unknown>,
+
+      if (nextGuardian.isMainGuardian) {
+        await Promise.all(
+          guardians
+            .filter((guardian) => guardian.isMainGuardian)
+            .map((guardian) =>
+              this.updateGuardian(studentId, guardian.id, {
+                ...guardian,
+                isMainGuardian: false,
+              }),
+            ),
+        );
+      }
+
+      await acudientesService.create(
+        buildGuardianApiPayload(nextGuardian, studentId),
       );
+
       return nextGuardian;
     },
     async updateGuardian(
@@ -511,10 +712,9 @@ export const useEstudiantesStore = defineStore("estudiantes", {
         this.guardians[studentId].find(
           (guardian) => guardian.id === guardianId,
         ) ?? null;
-      await estudiantesService.updateGuardian(
-        studentId,
+      await acudientesService.updateInfo(
         guardianId,
-        (updatedGuardian ?? data) as Record<string, unknown>,
+        buildGuardianApiPayload(updatedGuardian ?? data, studentId),
       );
       return updatedGuardian;
     },
@@ -522,7 +722,7 @@ export const useEstudiantesStore = defineStore("estudiantes", {
       this.guardians[studentId] = (this.guardians[studentId] ?? []).filter(
         (guardian) => guardian.id !== guardianId,
       );
-      await estudiantesService.deleteGuardian(studentId, guardianId);
+      await acudientesService.delete(guardianId, studentId);
     },
   },
 });

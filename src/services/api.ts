@@ -19,7 +19,10 @@ api.interceptors.request.use((config) => {
 */
 
 // Simplified response handling while auth is disabled. Keep error propagation.
-api.interceptors.response.use((res) => res, (err) => Promise.reject(err));
+api.interceptors.response.use(
+  (res) => res,
+  (err) => Promise.reject(err),
+);
 
 export const estudiantesService = {
   getAll: (params = {}) => api.get("/students/all", { params }),
@@ -29,23 +32,30 @@ export const estudiantesService = {
     api.patch(`/students/${id}`, data),
   remove: (id: string | number) => api.delete(`/students/${id}`),
   delete: (id: string | number) => api.delete(`/students/${id}`),
-  getAcudientes: (id: number) => api.get(`/students/${id}/guardians`),
-  getGuardians: (id: string | number) =>
-    api.get(`/students/${id}/guardians`),
-  addAcudiente: (id: number, data: unknown) =>
-    api.post(`/students/${id}/guardians`, data),
-  createGuardian: (id: string | number, data: unknown) =>
-    api.post(`/students/${id}/guardians`, data),
-  updateAcudiente: (id: number, aid: number, data: unknown) =>
-    api.patch(`/students/${id}/guardians/${aid}`, data),
-  updateGuardian: (id: string | number, aid: string | number, data: unknown) =>
-    api.patch(`/students/${id}/guardians/${aid}`, data),
-  removeAcudiente: (id: number, aid: number) =>
-    api.delete(`/students/${id}/guardians/${aid}`),
-  deleteGuardian: (id: string | number, aid: string | number) =>
-    api.delete(`/students/${id}/guardians/${aid}`),
-  setPrincipal: (id: number, aid: number) =>
-    api.patch(`/students/${id}/guardians/${aid}/principal`),
+};
+
+export const acudientesService = {
+  getByStudent: (studentId: string | number) =>
+    api.get(`/students/estudiante/${studentId}`),
+  create: (data: unknown) => api.post("/parent", data),
+  updateInfo: (id: string | number, data: unknown) =>
+    api.patch(`/parent/${id}`, data),
+  delete: (acudienteId: string | number, estudianteId: string | number) =>
+    api.delete(`/parent/${acudienteId}/estudiante/${estudianteId}`),
+};
+
+export const medicalInfoService = {
+  createMedicalHistory: (studentId: unknown) =>
+    api.post(`/medical_information`, studentId),
+  getMedicalHistory: (studentId: unknown) =>
+    api.get(`/medical_information/estudiante/${studentId}`),
+  createMedicalEntry: (data: unknown) => api.post(`/medical_entry/`, data),
+  listMedEntries: (medHistId: string | number) =>
+    api.get(`/medical_entry/por_informacion/medica/${medHistId}`),
+  deleteMedicalEntry: (id: string | number) =>
+    api.delete(`/medical_entry/${id}`),
+  updateMedicalEntry: (id: string | number, data: unknown) =>
+    api.put(`/medical_entry/${id}`, data),
 };
 
 export const inscripcionesService = {
@@ -78,7 +88,7 @@ export const formAspirantesService = {
 export const interviewService = {
   getLatestFormSchema: () => api.get("/interview/latest-form-schema"),
   getAvailableTimeSlots: () => api.get("/time_slot/available_time_slots"),
-  getAll: (params: unknown = {}) => api.get('/interview', { params }),
+  getAll: (params: unknown = {}) => api.get("/interview", { params }),
   create: (data: unknown) => api.post("/interview/create", data),
   getTimeSlotById: (id: number | string) => api.get(`/time_slot/${id}`),
 };
@@ -87,7 +97,8 @@ export const timeSlotService = {
   getAll: () => api.get("/time_slot/available_time_slots"),
   create: (data: unknown) => api.post("/time_slot/", data),
   getById: (id: number | string) => api.get(`/time_slot/${id}`),
-  update: (id: number | string, data: unknown) => api.put(`/time_slot/${id}`, data),
+  update: (id: number | string, data: unknown) =>
+    api.put(`/time_slot/${id}`, data),
   remove: (id: number | string) => api.delete(`/time_slot/${id}`),
 };
 
@@ -131,8 +142,8 @@ export const matriculasService = {
 };
 
 export const inscriptionService = {
-  create: (data: unknown) => api.post('/inscription/create', data),
-  getAll: (params: unknown = {}) => api.get('/inscription', { params }),
+  create: (data: unknown) => api.post("/inscription/create", data),
+  getAll: (params: unknown = {}) => api.get("/inscription", { params }),
 };
 
 export const authService = {
