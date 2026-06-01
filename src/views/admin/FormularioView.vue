@@ -28,7 +28,16 @@ const typeDescriptions: Record<FormularioTipo, string> = {
 
 const fixedFieldIds: Record<FormularioTipo, Set<string>> = {
   inscripcion: new Set([]),
-  entrevista: new Set(['fotoAspirante', 'fechaPreferidaEntrevista']),
+  entrevista: new Set([
+    'nom_madre',
+    'nom_padre',
+    'correo',
+    'celular',
+    'nom_estudiante',
+    'edad_estudiante',
+    'como_conocimiento',
+    'fechaPreferidaEntrevista',
+  ]),
   matricula: new Set(['fotoEstudiante', 'documentoIdentidad']),
 }
 

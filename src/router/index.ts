@@ -5,6 +5,7 @@ import LoginView from "@/views/admin/LoginView.vue";
 import StudentsView from "@/views/EstudiantesView.vue";
 import FormularioView from "@/views/admin/FormularioView.vue";
 import AspirantesView from "@/views/admin/AspirantesView.vue";
+import EntrevistasView from "@/views/admin/EntrevistasView.vue";
 import MatriculasView from "@/views/MatriculasView.vue";
 import ExalumnosView from "@/views/admin/ExalumnosView.vue";
 import AdmissionsView from "@/views/admmissions/AdmissionsView.vue";
@@ -47,6 +48,12 @@ const router = createRouter({
           name: "aspirantes",
           component: AspirantesView,
           meta: { title: "Aspirantes" },
+        },
+        {
+          path: "entrevistas",
+          name: "entrevistas",
+          component: EntrevistasView,
+          meta: { title: "Entrevistas" },
         },
         {
           path: "estudiantes",

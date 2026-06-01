@@ -294,19 +294,16 @@ async function deleteGuardian(guardianId: number) {
             <BaseInput
               v-model="form.city"
               label="Ciudad"
-              placeholder="Ciudad de residencia"
               :readonly="isReadOnly"
             />
             <BaseInput
               v-model="form.department"
               label="Departamento"
-              placeholder="Departamento de residencia"
               :readonly="isReadOnly"
             />
             <BaseInput
               v-model="form.strata"
               label="Estrato"
-              placeholder="Estrato socioeconómico"
               :readonly="isReadOnly"
             />
           </div>

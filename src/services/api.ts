@@ -7,6 +7,7 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+/* Temporarily disabled auth header injection to allow testing without authentication.
 api.interceptors.request.use((config) => {
   const auth = useAuthStore();
   if (auth.token) {
@@ -15,17 +16,10 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+*/
 
-api.interceptors.response.use(
-  (res) => res,
-  (err) => {
-    if (err.response?.status === 401) {
-      useAuthStore().logout();
-      router.push("/login");
-    }
-    return Promise.reject(err);
-  },
-);
+// Simplified response handling while auth is disabled. Keep error propagation.
+api.interceptors.response.use((res) => res, (err) => Promise.reject(err));
 
 export const estudiantesService = {
   getAll: (params = {}) => api.get("/students/all", { params }),
@@ -78,6 +72,23 @@ export const franjasService = {
 export const formAspirantesService = {
   getAll: (params = {}) => api.get("/form-aspirantes", { params }),
   getByCorreo: (correo: string) => api.get(`/form-aspirantes/${correo}`),
+  create: (data: unknown) => api.post("/form-aspirantes", data),
+};
+
+export const interviewService = {
+  getLatestFormSchema: () => api.get("/interview/latest-form-schema"),
+  getAvailableTimeSlots: () => api.get("/time_slot/available_time_slots"),
+  getAll: (params: unknown = {}) => api.get('/interview', { params }),
+  create: (data: unknown) => api.post("/interview/create", data),
+  getTimeSlotById: (id: number | string) => api.get(`/time_slot/${id}`),
+};
+
+export const timeSlotService = {
+  getAll: () => api.get("/time_slot/available_time_slots"),
+  create: (data: unknown) => api.post("/time_slot/", data),
+  getById: (id: number | string) => api.get(`/time_slot/${id}`),
+  update: (id: number | string, data: unknown) => api.put(`/time_slot/${id}`, data),
+  remove: (id: number | string) => api.delete(`/time_slot/${id}`),
 };
 
 export const aspirantesService = {
@@ -117,6 +128,11 @@ export const matriculasService = {
   assignInterview: (id: string | number, payload: unknown) =>
     api.patch(`/inscripciones/${id}/entrevista`, payload),
   approve: (id: string | number) => api.patch(`/inscripciones/${id}/aprobar`),
+};
+
+export const inscriptionService = {
+  create: (data: unknown) => api.post('/inscription/create', data),
+  getAll: (params: unknown = {}) => api.get('/inscription', { params }),
 };
 
 export const authService = {

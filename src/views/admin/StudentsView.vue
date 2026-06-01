@@ -142,6 +142,16 @@ async function removeStudent() {
 
 onMounted(() => {
     estudiantesStore.fetchEstudiantes()
+    .then(() => {
+        // eslint-disable-next-line no-console
+        console.log('[UI] estudiantes loaded:', estudiantesStore.estudiantes.length, estudiantesStore.estudiantes.slice(0,3))
+        // eslint-disable-next-line no-console
+        console.log('[UI] visibleStudents:', visibleStudents.value.length, visibleStudents.value.slice(0,3))
+    })
+    .catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error('[UI] fetchEstudiantes failed', err)
+    })
     void syncHighlightFromRoute()
 })
 

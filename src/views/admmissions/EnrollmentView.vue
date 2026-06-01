@@ -98,6 +98,7 @@
 
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <BaseInput v-model="guardianName" label="Nombre del acudiente" labelPosition="above" />
+                    <BaseInput v-model="guardianId" label="Cédula" labelPosition="above" />
                     <BaseInput v-model="guardianKinship" label="Parentesco" labelPosition="above" />
                     <BaseInput v-model="guardianCell" label="Celular" type="tel" labelPosition="above" />
                     <BaseInput v-model="guardianPhone" label="Teléfono fijo" type="tel" labelPosition="above" />
@@ -110,6 +111,7 @@
 
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <BaseInput v-model="payerName" label="Nombre responsable de pagos" labelPosition="above" />
+                    <BaseInput v-model="payerId" label="Cédula" labelPosition="above" />
                     <BaseInput v-model="payerCell" label="Celular" type="tel" labelPosition="above" />
                     <BaseInput v-model="payerPhone" label="Teléfono fijo" type="tel" labelPosition="above" />
                     <BaseInput v-model="payerEmail" label="Correo Electrónico" type="email" labelPosition="above" />
@@ -197,7 +199,7 @@
                     </span>
                 </label>
 
-                <BaseButton type="submit" :disabled="!acceptedPrivacyPolicy" variant="primary">Enviar formulario</BaseButton>
+                <BaseButton type="button" :disabled="!acceptedPrivacyPolicy || enrollmentStore.loading" variant="primary" @click="handleSubmit">Enviar formulario</BaseButton>
             </div>
         </section>
     </div>
@@ -207,6 +209,7 @@
 import { ref, type Ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import { useEnrollmentStore } from '@/stores/enrollmentStore'
 
 
 const childName: Ref<string> = ref('')
@@ -247,6 +250,7 @@ const guardianRelation: Ref<string> = ref('')
 const guardianKinship: Ref<string> = ref('')
 // Responsable de pagos (payer)
 const payerName: Ref<string> = ref('')
+const payerId: Ref<string> = ref('')
 const payerCell: Ref<string> = ref('')
 const payerPhone: Ref<string> = ref('')
 const payerEmail: Ref<string> = ref('')
@@ -413,6 +417,131 @@ onBeforeUnmount(() => {
     motherSignature.unmount()
     fatherSignature.unmount()
 })
+
+const enrollmentStore = useEnrollmentStore()
+
+async function handleSubmit() {
+    if (!acceptedPrivacyPolicy.value) return
+    const payload = {
+        estudiante: {
+            nombres: childName.value,
+            apellidos: childLastName.value,
+            fecha_nacimiento: birthDate.value,
+            tipo_documento: '',
+            documento_identidad: '',
+            direccion_residencia: address.value,
+            barrio: neighborhood.value,
+            estrato: Number(stratum.value) || 0,
+            foto_url: '',
+            tiene_transporte_ruta: transport.value,
+            tiene_almuerzo: lunch.value,
+            observaciones_relevantes: observations.value,
+        },
+        padre: {
+            nombre_completo: fatherName.value,
+            tipo_documento: '',
+            documento_identidad: fatherId.value,
+            fecha_nacimiento: fatherBirthDate.value,
+            lugar_nacimiento: fatherBirthPlace.value,
+            celular: fatherCell.value,
+            correo_electronico: fatherEmail.value,
+            nombre_empresa_trabajo: fatherCompany.value,
+            ocupacion: fatherOccupation.value,
+        },
+        madre: {
+            nombre_completo: motherName.value,
+            tipo_documento: '',
+            documento_identidad: motherId.value,
+            fecha_nacimiento: motherBirthDate.value,
+            lugar_nacimiento: motherBirthPlace.value,
+            celular: motherCell.value,
+            correo_electronico: motherEmail.value,
+            nombre_empresa_trabajo: motherCompany.value,
+            ocupacion: motherOccupation.value,
+        },
+        acudiente_adicional: {
+            nombre_acudiente: guardianName.value,
+            tipo_documento: '',
+            documento_identidad: guardianId.value,
+            parentesco: guardianKinship.value,
+            celular: guardianCell.value,
+            correo_electronico: guardianEmail.value,
+            telefono_fijo: guardianPhone.value,
+        },
+        responsable_pago: {
+            nombre_completo: payerName.value,
+            tipo_documento: '',
+            documento_identidad: payerId.value,
+            celular: payerCell.value,
+            telefono_fijo: payerPhone.value,
+            correo_electronico: payerEmail.value,
+        },
+    }
+
+    try {
+        await enrollmentStore.submitEnrollment(payload)
+        // simple success UX: clear form and inform user
+        clearForm()
+        acceptedPrivacyPolicy.value = false
+        // eslint-disable-next-line no-alert
+        alert('Inscripción enviada correctamente')
+    } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('Inscripción fallida', err)
+        // eslint-disable-next-line no-alert
+        alert('Error al enviar la inscripción')
+    }
+}
+
+function clearForm() {
+    childName.value = ''
+    childLastName.value = ''
+    birthDate.value = ''
+    address.value = ''
+    neighborhood.value = ''
+    stratum.value = ''
+    photo.value = null
+    transport.value = false
+    lunch.value = false
+    observations.value = ''
+
+    fatherName.value = ''
+    fatherBirthDate.value = ''
+    fatherBirthPlace.value = ''
+    fatherId.value = ''
+    fatherCompany.value = ''
+    fatherOccupation.value = ''
+    fatherCell.value = ''
+    fatherEmail.value = ''
+
+    motherName.value = ''
+    motherBirthDate.value = ''
+    motherBirthPlace.value = ''
+    motherId.value = ''
+    motherCompany.value = ''
+    motherOccupation.value = ''
+    motherEmail.value = ''
+    motherCell.value = ''
+
+    guardianName.value = ''
+    guardianBirthDate.value = ''
+    guardianBirthPlace.value = ''
+    guardianId.value = ''
+    guardianCompany.value = ''
+    guardianOccupation.value = ''
+    guardianEmail.value = ''
+    guardianCell.value = ''
+    guardianPhone.value = ''
+    guardianRelation.value = ''
+    guardianKinship.value = ''
+
+    payerName.value = ''
+    payerCell.value = ''
+    payerPhone.value = ''
+    payerEmail.value = ''
+    motherSignatureFileName.value = ''
+    fatherSignatureFileName.value = ''
+}
 
 </script>
 <style lang="">
