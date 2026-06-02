@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { aspirantesService, interviewService } from "@/services/api";
+import {interviewService } from "@/services/api";
 import { useEstudiantesStore } from "@/stores/estudiantesStore";
 import { readJSON, writeJSON } from "@/utils/storage";
 
@@ -65,7 +65,7 @@ export const useAspirantesStore = defineStore("aspirantes", {
           // eslint-disable-next-line no-console
           console.warn('[aspirantes] interview.getAll failed, falling back to /aspirantes or cache', err);
           try {
-            const resp = await aspirantesService.getAll();
+            const resp = await interviewService.getAll();
             const aspirantes = (resp.data ?? []) as ApplicantRecord[];
             this.aspirantes = Array.isArray(aspirantes) ? aspirantes : [];
             writeJSON(storageKey, this.aspirantes);
@@ -80,37 +80,6 @@ export const useAspirantesStore = defineStore("aspirantes", {
       } finally {
         this.loading = false;
       }
-    },
-    async aprobarAspirante(id: string) {
-      const applicant = this.aspirantes.find((entry) => entry.id === id);
-      if (!applicant) return null;
-      const studentsStore = useEstudiantesStore();
-      await studentsStore.createEstudiante({
-        fullName: applicant.fullName,
-        status: "active",
-      });
-      this.aspirantes = this.aspirantes.map((entry) =>
-        entry.id === id ? { ...entry, status: "active" } : entry,
-      );
-      writeJSON(storageKey, this.aspirantes);
-      await aspirantesService.approve(id);
-      return applicant;
-    },
-    async rechazarAspirante(id: string, motivo = "") {
-      this.aspirantes = this.aspirantes.map((entry) =>
-        entry.id === id
-          ? { ...entry, status: "inactive", rejectionReason: motivo }
-          : entry,
-      );
-      writeJSON(storageKey, this.aspirantes);
-      await aspirantesService.reject(id, motivo);
-    },
-    async updateFechaEntrevista(id: string, date: string) {
-      this.aspirantes = this.aspirantes.map((entry) =>
-        entry.id === id ? { ...entry, interviewDate: date } : entry,
-      );
-      writeJSON(storageKey, this.aspirantes);
-      await aspirantesService.updateInterview(id, date);
     },
   },
 });

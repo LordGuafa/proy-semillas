@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { formularioService, interviewService } from "@/services/api";
+import { interviewService, inscriptionService } from "@/services/api";
 import { readJSON, writeJSON } from "@/utils/storage";
 import type { Campo, FormularioTipo } from "@/types/formulario";
 
@@ -154,7 +154,9 @@ function normalizeBackendCampo(value: unknown, index: number): Campo | null {
           ? data.etiqueta
           : id,
     type:
-      data.type === "number" || data.tipo === "number" || data.tipo === "integer"
+      data.type === "number" ||
+      data.tipo === "number" ||
+      data.tipo === "integer"
         ? "number"
         : data.type === "date" || data.tipo === "date"
           ? "date"
@@ -216,6 +218,34 @@ function mergeWithFixed(tipo: FormularioTipo, campos: Campo[]): Campo[] {
   return normalizeCampos([...mergedFixed, ...dynamicFields]);
 }
 
+function getDynamicCampos(tipo: FormularioTipo, campos: Campo[]): Campo[] {
+  return campos
+    .filter(
+      (campo) =>
+        !fixedFields[tipo].some((fixedField) => fixedField.id === campo.id) &&
+        !campo.fijo,
+    )
+    .map(({ fijo: _fijo, ...campo }) => campo);
+}
+
+function getSchemaService(tipo: FormularioTipo) {
+  if (tipo === "entrevista") return interviewService;
+  return inscriptionService;
+}
+
+function getSchemaPayload(tipo: FormularioTipo, campos: Campo[]) {
+  const dynamic = getDynamicCampos(tipo, campos);
+  const payloadCampos = dynamic.map((c) => ({
+    tipo: String(c.type ?? "text"),
+    nombre: String(c.id ?? ""),
+    etiqueta: String(c.label ?? c.id ?? ""),
+    requerido: Boolean(c.required ?? false),
+  }));
+
+  // El backend espera recibir directamente un array de campos.
+  return payloadCampos;
+}
+
 function nextFieldOrder(campos: Campo[]): number {
   return campos.length
     ? Math.max(...campos.map((campo) => campo.order)) + 1
@@ -246,69 +276,28 @@ export const useFormularioStore = defineStore("formulario", {
       this.error = null;
       try {
         let campos: Campo[] = [];
-        try {
-          const response = await formularioService.getByType(tipo);
-          campos = toCampoList(response.data);
-          if (import.meta.env.DEV) {
-            // eslint-disable-next-line no-console
-            console.log('[formularioStore] formularioService.getByType response:', response.data);
-          }
-        } catch (err) {
-          // If the formularios endpoint is missing (404) or fails, don't throw —
-          // continue with legacy/schema fallbacks so the admin remains usable.
-          // eslint-disable-next-line no-console
-          console.warn('[formularioStore] getByType failed, falling back to legacy/schema', err);
-          campos = [];
-        }
-
-        if (campos.length) {
-          this.formularios[tipo] = mergeWithFixed(tipo, campos);
-        } else if (tipo === "entrevista") {
-          try {
-            const legacyResp = await formularioService.getLegacyFields();
-            const legacyCampos = toCampoList(legacyResp.data);
-            this.formularios[tipo] = mergeWithFixed(tipo, legacyCampos);
-          } catch (legacyErr) {
-            // legacy endpoint also may be missing; start from fixed fields
-            if (import.meta.env.DEV) {
-              // eslint-disable-next-line no-console
-              console.warn('[formularioStore] getLegacyFields failed, using fixedFields only', legacyErr);
-            }
-            this.formularios[tipo] = mergeWithFixed(tipo, []);
-          }
-        } else {
-          this.formularios[tipo] = mergeWithFixed(tipo, []);
-        }
-        // Additionally, attempt to fetch the public interview schema and merge any extra campos
         if (tipo === "entrevista") {
           try {
             const latest = await interviewService.getLatestFormSchema();
+            campos = normalizeSchemaCampos(latest.data);
             if (import.meta.env.DEV) {
               // eslint-disable-next-line no-console
-              console.log('[formularioStore] latest schema raw:', latest.data);
+              console.log("[formularioStore] latest schema raw:", latest.data);
             }
-            const schemaCampos = normalizeSchemaCampos(latest.data);
+          } catch (err) {
+            // If the schema endpoint is missing or fails, start from fixed fields.
             if (import.meta.env.DEV) {
               // eslint-disable-next-line no-console
-              console.log('[formularioStore] normalized schema campos:', schemaCampos);
-              // eslint-disable-next-line no-console
-              console.log('[formularioStore] existing campos before merge:', this.formularios[tipo]);
+              console.warn(
+                "[formularioStore] interview schema fetch failed, using fixedFields only",
+                err,
+              );
             }
-            if (schemaCampos.length) {
-              const existing = this.formularios[tipo] ?? [];
-              const existingIds = new Set(existing.map((c) => c.id));
-              const extras = schemaCampos.filter((c) => !existingIds.has(c.id));
-              if (extras.length) {
-                this.formularios[tipo] = normalizeCampos([...existing, ...extras]);
-                if (import.meta.env.DEV) {
-                  // eslint-disable-next-line no-console
-                  console.log('[formularioStore] merged campos:', this.formularios[tipo]);
-                }
-              }
-            }
-          } catch (e) {
-            // ignore schema merge errors; admin still has formularioService data
+            campos = [];
           }
+          this.formularios[tipo] = mergeWithFixed(tipo, campos);
+        } else {
+          this.formularios[tipo] = mergeWithFixed(tipo, []);
         }
         this.persistState();
         this.dirty = false;
@@ -328,7 +317,12 @@ export const useFormularioStore = defineStore("formulario", {
         const campos = normalizeCampos(this.formularios[tipo] ?? []);
         this.formularios[tipo] = campos;
         this.persistState();
-        await formularioService.saveByType(tipo, campos);
+        const payload = getSchemaPayload(tipo, campos);
+        if (import.meta.env.DEV) {
+          // eslint-disable-next-line no-console
+          console.log("[formularioStore] createSchema payload:", payload);
+        }
+        await getSchemaService(tipo).createSchema(payload);
         this.dirty = false;
         return campos;
       } catch (err: unknown) {

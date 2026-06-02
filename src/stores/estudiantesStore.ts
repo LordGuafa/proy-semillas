@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { estudiantesService } from "@/services/api";
+import { studentService, guardianService } from "@/services/api";
 import { readJSON, writeJSON } from "@/utils/storage";
 import type { Guardian } from "@/types/guardian";
 import type { Student } from "@/types/student";
@@ -107,7 +107,9 @@ function normalizeStudentRecord(
   const names = splitFullName(
     record.fullName ?? `${record.firstname ?? ""} ${record.lastname ?? ""}`,
   );
-  const numericId = Number(record.id ?? record.id_persona);
+  const numericId = Number(
+    record.id ?? (record as any).id_persona ?? (record as any).id_persona,
+  );
   const fieldValues = record.fieldValues ?? {};
   const primerNombre =
     record.primer_nombre ?? record.firstname ?? record.firstName ?? names.firstname ?? "";
@@ -149,29 +151,106 @@ function normalizeStudentRecord(
   return {
     id: Number.isFinite(numericId) ? numericId : index + 1,
     usuarioSistemaId: undefined,
-    documentoIdentidad,
-    tipoDocumento,
-    primerNombre,
-    segundoNombre,
-    primerApellido,
-    segundoApellido,
-    correoElectronico,
-    telefono,
-    fechaNacimiento,
-    paisNacimiento,
-    departamentoNacimiento,
-    ciudadNacimiento,
-    createdAt: String(record.created_at ?? new Date().toISOString()),
-    updatedAt: String(record.updated_at ?? new Date().toISOString()),
-    direccionResidencia,
-    ciudadResidencia,
-    departamentoResidencia,
-    estrato,
-    tieneAlmuerzo: parseBoolean(record.tiene_almuerzo ?? record.hasLunch ?? fieldValues.hasLunch),
-    tieneTranporteRuta: parseBoolean(record.tiene_transporte_ruta ?? record.hasTransport ?? fieldValues.hasTransport),
-    fotoUrl: photoUrl ?? undefined,
-    estado: estado as Student["estado"],
-    status: estado,
+    documentoIdentidad: String(
+      (record as any).documento_identidad ??
+        record.documentoIdentidad ??
+        fieldValues.documentoIdentidad ??
+        fieldValues.documentNumber ??
+        "",
+    ),
+    tipoDocumento: String(
+      (record as any).tipo_documento ??
+        record.tipoDocumento ??
+        fieldValues.tipoDocumento ??
+        "CC",
+    ) as Student["tipoDocumento"],
+    primerNombre: primerNombre,
+    segundoNombre: (record as any).segundo_nombre ?? undefined,
+    primerApellido: primerApellido,
+    segundoApellido: (record as any).segundo_apellido ?? undefined,
+    correoElectronico:
+      String(
+        (record as any).correo_electronico ??
+          record.correoElectronico ??
+          fieldValues.correoElectronico ??
+          "",
+      ) || undefined,
+    telefono:
+      String(
+        (record as any).telefono ??
+          record.telefono ??
+          fieldValues.telefono ??
+          "",
+      ) || undefined,
+    fechaNacimiento:
+      String(
+        (record as any).fecha_nacimiento ??
+          record.fechaNacimiento ??
+          fieldValues.fechaNacimiento ??
+          "",
+      ) || undefined,
+    paisNacimiento:
+      String(
+        (record as any).pais_nacimiento ??
+          record.paisNacimiento ??
+          fieldValues.paisNacimiento ??
+          "",
+      ) || undefined,
+    departamentoNacimiento:
+      String(
+        (record as any).departamento_nacimiento ??
+          record.departamentoNacimiento ??
+          fieldValues.departamentoNacimiento ??
+          "",
+      ) || undefined,
+    ciudadNacimiento:
+      String(
+        (record as any).ciudad_nacimiento ??
+          record.ciudadNacimiento ??
+          fieldValues.ciudadNacimiento ??
+          "",
+      ) || undefined,
+    createdAt: String(
+      (record as any).created_at ??
+        (record as { createdAt?: string }).createdAt ??
+        new Date().toISOString(),
+    ),
+    updatedAt: String(
+      (record as any).updated_at ??
+        (record as { updatedAt?: string }).updatedAt ??
+        new Date().toISOString(),
+    ),
+    direccionResidencia:
+      (record as any).direccion_residencia ??
+      record.homeAddress ??
+      String(fieldValues.homeAddress ?? fieldValues.address ?? ""),
+    ciudadResidencia:
+      ((record as any).ciudad_residencia ??
+        record.city ??
+        String(fieldValues.city ?? "")) ||
+      undefined,
+    departamentoResidencia:
+      ((record as any).departamento_residencia ??
+        record.department ??
+        String(fieldValues.department ?? "")) ||
+      undefined,
+    estrato:
+      Number(
+        (record as any).estrato ?? record.strata ?? fieldValues.strata ?? 0,
+      ) || 0,
+    tieneAlmuerzo:
+      (record as any).tiene_almuerzo ??
+      record.hasLunch ??
+      parseBoolean(fieldValues.hasLunch),
+    tieneTranporteRuta:
+      (record as any).tiene_transporte_ruta ??
+      record.hasTransport ??
+      parseBoolean(fieldValues.hasTransport),
+    fotoUrl: (record as any).foto_url ?? record.photoURL ?? record.photoUrl,
+    estado: normalizeStatus(
+      (record as any).estado ?? record.status,
+    ) as Student["estado"],
+    status: normalizeStatus((record as any).estado ?? record.status),
     firstname: primerNombre,
     lastname: primerApellido,
     homeAddress: direccionResidencia,
@@ -203,9 +282,12 @@ function normalizeGuardianRecord(
       record.documentType ?? record.tipoDocumento ?? "CC",
     ) as Guardian["tipoDocumento"],
     primerNombre: String(record.firstName ?? record.primerNombre ?? ""),
-    segundoNombre: undefined,
+    segundoNombre:
+      String(record.secondName ?? record.segundoNombre ?? "") || undefined,
     primerApellido: String(record.lastName ?? record.primerApellido ?? ""),
-    segundoApellido: undefined,
+    segundoApellido:
+      String(record.secondLastName ?? record.segundoApellido ?? "") ||
+      undefined,
     correoElectronico:
       String(record.email ?? record.correoElectronico ?? "") || undefined,
     telefono: String(record.phone ?? record.telefono ?? "") || undefined,
@@ -311,6 +393,135 @@ function mergeStudent(
   return cloneStudent({ ...base, ...next, id: next.id } as Student);
 }
 
+function cleanOptionalString(value: unknown): string | undefined {
+  if (value === null || value === undefined) return undefined;
+  const text = String(value).trim();
+  return text ? text : undefined;
+}
+
+function cleanOptionalDate(value: unknown): string | undefined {
+  if (!value) return undefined;
+  const date = value instanceof Date ? value : new Date(String(value));
+  return Number.isNaN(date.getTime())
+    ? undefined
+    : date.toISOString().slice(0, 10);
+}
+
+function buildGuardianApiPayload(
+  guardian: Partial<Guardian>,
+  studentId: number,
+): Record<string, unknown> {
+  // ✅ Extraer campos requeridos primero para poder loguearlos si faltan
+  const primerNombre = cleanOptionalString(
+    guardian.firstName ?? guardian.primerNombre,
+  );
+  const primerApellido = cleanOptionalString(
+    guardian.lastName ?? guardian.primerApellido,
+  );
+  const parentesco = cleanOptionalString(
+    guardian.kinship ?? guardian.parentesco,
+  );
+  const documentoIdentidad = cleanOptionalString(
+    guardian.documentNumber ?? guardian.documentoIdentidad,
+  );
+
+  if (import.meta.env.DEV) {
+    if (
+      !primerNombre ||
+      !primerApellido ||
+      !parentesco ||
+      !documentoIdentidad
+    ) {
+      console.error("[buildGuardianApiPayload] Campos requeridos faltantes:", {
+        primerNombre,
+        primerApellido,
+        parentesco,
+        documentoIdentidad,
+        guardianRecibido: guardian,
+      });
+    }
+  }
+
+  const payload: Record<string, unknown> = {
+    documento_identidad: documentoIdentidad,
+    tipo_documento:
+      cleanOptionalString(
+        guardian.documentType ?? guardian.tipoDocumento ?? "CC",
+      ) ?? "CC",
+    primer_nombre: primerNombre,
+    primer_apellido: primerApellido,
+    parentesco,
+    id_estudiante: studentId,
+    es_responsable_pago: Boolean(
+      guardian.isPaymentResponsible ?? guardian.esResponsablePago,
+    ),
+  };
+
+  const optionalFields = {
+    segundo_nombre: cleanOptionalString(
+      guardian.secondName ?? guardian.segundoNombre, // ✅ secondName ahora llega correctamente
+    ),
+    segundo_apellido: cleanOptionalString(
+      guardian.secondLastName ?? guardian.segundoApellido, // ✅ secondLastName ahora llega correctamente
+    ),
+    correo_electronico: cleanOptionalString(
+      guardian.email ?? guardian.correoElectronico,
+    ),
+    telefono: cleanOptionalString(guardian.phone ?? guardian.telefono),
+    fecha_nacimiento: cleanOptionalDate(guardian.birthdate), // ✅ cleanOptionalDate maneja el string directamente
+    ocupacion: cleanOptionalString(guardian.occupation ?? guardian.ocupacion),
+    nombre_empresa_trabajo: cleanOptionalString(
+      guardian.workplace ?? guardian.nombreEmpresaTrabajo,
+    ),
+    direccion_casa: cleanOptionalString(
+      guardian.homeAddress ?? guardian.direccionCasa,
+    ),
+    ciudad_casa: cleanOptionalString(guardian.city ?? guardian.ciudadCasa),
+    departamento_casa: cleanOptionalString(
+      guardian.department ?? guardian.departamentoCasa,
+    ),
+  };
+
+  Object.entries(optionalFields).forEach(([key, value]) => {
+    if (value !== undefined) {
+      payload[key] = value;
+    }
+  });
+
+  return payload;
+}
+
+function isConflictError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const response = (error as { response?: { status?: number } }).response;
+  return response?.status === 409;
+}
+
+function extractApiErrorMessage(error: unknown): string | null {
+  if (!error || typeof error !== "object") return null;
+  const response = (
+    error as {
+      response?: { data?: unknown; status?: number };
+    }
+  ).response;
+  const data = response?.data as
+    | { detail?: unknown; message?: unknown }
+    | string
+    | undefined;
+
+  if (typeof data === "string" && data.trim()) {
+    return data;
+  }
+
+  if (data && typeof data === "object") {
+    const detail = data.detail ?? data.message;
+    if (typeof detail === "string" && detail.trim()) return detail;
+    if (Array.isArray(detail)) return detail.map(String).join("; ");
+  }
+
+  return null;
+}
+
 export const useEstudiantesStore = defineStore("estudiantes", {
   state: () => {
     const persisted = readJSON<LegacyStudentRecord[]>(storageKey, []);
@@ -373,14 +584,31 @@ export const useEstudiantesStore = defineStore("estudiantes", {
     async fetchEstudiantes() {
       this.loading = true;
       try {
-        const resp = await estudiantesService.getAll();
+        // DEBUG: log API call and response to help trace missing students
+        // eslint-disable-next-line no-console
+        console.log("[estudiantes] fetching /students/all...");
+        const resp = await studentService.getAll();
+        // eslint-disable-next-line no-console
+        console.log(
+          "[estudiantes] raw response:",
+          resp && resp.data ? resp.data : resp,
+        );
         const data = resp.data ?? {};
         const estudiantesArr = Array.isArray((data as any).students)
           ? (data as any).students
           : Array.isArray(data)
             ? (data as any)
             : [];
-        const normalized = normalizeStudents(estudiantesArr as LegacyStudentRecord[]);
+        const normalized = normalizeStudents(
+          estudiantesArr as LegacyStudentRecord[],
+        );
+        // eslint-disable-next-line no-console
+        console.log(
+          "[estudiantes] normalized count:",
+          normalized.length,
+          "sample:",
+          normalized.slice(0, 3),
+        );
         this.estudiantes = normalized;
         this.persistStudents();
         return this.estudiantes;
@@ -408,7 +636,7 @@ export const useEstudiantesStore = defineStore("estudiantes", {
       };
       this.estudiantes = [cloneStudent(nextStudent), ...this.estudiantes];
       this.persistStudents();
-      await estudiantesService.create(
+      await studentService.create(
         nextStudent as unknown as Record<string, unknown>,
       );
       return nextStudent;
@@ -440,7 +668,7 @@ export const useEstudiantesStore = defineStore("estudiantes", {
         student.id === normalizedId && updated ? updated : student,
       );
       this.persistStudents();
-      await estudiantesService.update(
+      await studentService.update(
         id,
         (updated ?? data) as Record<string, unknown>,
       );
@@ -448,18 +676,11 @@ export const useEstudiantesStore = defineStore("estudiantes", {
     },
     async deleteEstudiante(id: string | number) {
       const normalizedId = Number(id);
-      const backup = [...this.estudiantes]; // guarda estado previo
-
-      try {
-        await estudiantesService.delete(id); // primero el servidor
-        this.estudiantes = this.estudiantes.filter(
-          (student) => student.id !== normalizedId,
-        );
-        this.persistStudents();
-      } catch (error) {
-        this.estudiantes = backup; // revierte si falla
-        throw error; // propaga para que la UI pueda mostrar el error
-      }
+      this.estudiantes = this.estudiantes.filter(
+        (student) => student.id !== normalizedId,
+      );
+      this.persistStudents();
+      await studentService.delete(id);
     },
     upsertEstudiante(student: Partial<Student> & { id: number }) {
       const normalizedStudent = mergeStudent(
@@ -487,19 +708,114 @@ export const useEstudiantesStore = defineStore("estudiantes", {
       }
       this.loadingGuardians = true;
       try {
-        const guardians =
-          (
-            (await estudiantesService.getGuardians(studentId)) as unknown as {
-              data?: Array<Partial<Guardian> & { id?: string | number }>;
-            }
-          ).data ?? [];
-        this.guardians[studentId] = normalizeGuardians(guardians);
+        const resp = (await guardianService.getByStudent(studentId)) as unknown;
+        const raw = (resp && (resp as any).data) ?? resp;
+        let guardians: Array<Partial<Guardian> & { id?: string | number }> = [];
+        if (Array.isArray(raw)) {
+          guardians = raw;
+        } else if (raw && Array.isArray((raw as any).parents)) {
+          guardians = (raw as any).parents;
+        } else if (raw && Array.isArray((raw as any).acudientes)) {
+          guardians = (raw as any).acudientes;
+        } else if (raw && Array.isArray((raw as any).guardians)) {
+          guardians = (raw as any).guardians;
+        } else if (raw && (raw as any).parent) {
+          guardians = [(raw as any).parent];
+        } else {
+          guardians = [];
+        }
+
+        // Map backend snake_case fields to the shapes expected by normalizeGuardianRecord/UI
+        const mapped = guardians.map((g: any) => ({
+          // ids
+          id: g.id ?? g.id_persona ?? g.idPersona,
+          usuarioSistemaId:
+            g.usuario_sistema_id ?? g.usuarioSistemaId ?? g.usuario_sistema_id,
+          // document
+          documentoIdentidad:
+            g.documento_identidad ?? g.documentoIdentidad ?? g.document_number,
+          documentNumber:
+            g.documento_identidad ?? g.documentNumber ?? g.documento_identidad,
+          tipoDocumento: g.tipo_documento ?? g.tipoDocumento,
+          documentType: g.tipo_documento ?? g.documentType,
+          // names
+          primerNombre: g.primer_nombre ?? g.primerNombre ?? g.firstName,
+          firstName: g.primer_nombre ?? g.firstName,
+          segundoNombre: g.segundo_nombre ?? g.segundoNombre ?? g.secondName,
+          primerApellido: g.primer_apellido ?? g.primerApellido ?? g.lastName,
+          segundoApellido: g.segundo_apellido ?? g.segundoApellido,
+          // contact
+          correoElectronico:
+            g.correo_electronico ?? g.correoElectronico ?? g.email,
+          email: g.correo_electronico ?? g.email,
+          telefono: g.telefono ?? g.phone,
+          phone: g.telefono ?? g.phone,
+          // birth & place
+          fechaNacimiento:
+            g.fecha_nacimiento ?? g.fechaNacimiento ?? g.birthdate,
+          birthdate: g.fecha_nacimiento
+            ? new Date(g.fecha_nacimiento)
+            : g.birthdate
+              ? new Date(g.birthdate)
+              : undefined,
+          paisNacimiento: g.pais_nacimiento ?? g.paisNacimiento,
+          departamentoNacimiento:
+            g.departamento_nacimiento ?? g.departamentoNacimiento,
+          ciudadNacimiento: g.ciudad_nacimiento ?? g.ciudadNacimiento,
+          // address
+          direccionCasa: g.direccion_casa ?? g.homeAddress ?? g.direccionCasa,
+          homeAddress: g.direccion_casa ?? g.homeAddress,
+          ciudadCasa: g.ciudad_casa ?? g.city ?? g.ciudadCasa,
+          city: g.ciudad_casa ?? g.city,
+          departamentoCasa:
+            g.departamento_casa ?? g.department ?? g.departamentoCasa,
+          department: g.departamento_casa ?? g.department,
+          nombreEmpresaTrabajo:
+            g.nombre_empresa_trabajo ?? g.workplace ?? g.nombreEmpresaTrabajo,
+          workplace: g.nombre_empresa_trabajo ?? g.workplace,
+          ocupacion: g.ocupacion ?? g.occupation,
+          occupation: g.ocupacion ?? g.occupation,
+          // flags
+          esPrincipal:
+            g.es_principal_estudiante ??
+            g.es_principal ??
+            g.isMainGuardian ??
+            false,
+          isMainGuardian: Boolean(
+            g.es_principal_estudiante ??
+            g.is_principal ??
+            g.isMainGuardian ??
+            false,
+          ),
+          esResponsablePago:
+            g.es_responsable_pago ??
+            g.esResponsablePago ??
+            g.isPaymentResponsible ??
+            false,
+          isPaymentResponsible: Boolean(
+            g.es_responsable_pago ??
+            g.esResponsablePago ??
+            g.isPaymentResponsible ??
+            false,
+          ),
+          // metadata
+          createdAt: g.created_at ?? g.createdAt,
+          updatedAt: g.updated_at ?? g.updatedAt,
+          parentesco: g.parentesco ?? g.kinship,
+          kinship: g.parentesco ?? g.kinship,
+          fotoUrl: g.firma_url ?? g.foto_url ?? g.firmaUrl,
+        }));
+
+        this.guardians[studentId] = normalizeGuardians(mapped as any);
         return this.guardians[studentId];
       } finally {
         this.loadingGuardians = false;
       }
     },
     async createGuardian(studentId: number, data: Omit<Guardian, "id">) {
+      if (!Number.isFinite(studentId) || studentId <= 0) {
+        throw new Error("ID de estudiante invalido para crear acudiente.");
+      }
       const guardians = this.guardians[studentId] ?? [];
       const nextGuardian: Guardian = {
         ...data,
@@ -515,11 +831,68 @@ export const useEstudiantesStore = defineStore("estudiantes", {
         ...nextGuardians,
         nextGuardian,
       ]);
-      await estudiantesService.createGuardian(
-        studentId,
-        nextGuardian as unknown as Record<string, unknown>,
-      );
-      return nextGuardian;
+
+      if (nextGuardian.isMainGuardian) {
+        await Promise.all(
+          guardians
+            .filter((guardian) => guardian.isMainGuardian)
+            .map((guardian) =>
+              this.updateGuardian(studentId, guardian.id, {
+                ...guardian,
+                isMainGuardian: false,
+              }),
+            ),
+        );
+      }
+      console.log("[createGuardian] nextGuardian antes de buildPayload:", {
+        firstName: nextGuardian.firstName,
+        lastName: nextGuardian.lastName,
+        kinship: nextGuardian.kinship,
+        documentNumber: nextGuardian.documentNumber,
+        secondName: nextGuardian.secondName,
+        primerNombre: nextGuardian.primerNombre,
+        primerApellido: nextGuardian.primerApellido,
+      });
+      const payload = buildGuardianApiPayload(nextGuardian, studentId);
+      console.log("[createGuardian] payload construido:", payload); // ← Y ESTO
+
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.log("[estudiantes] createGuardian payload:", payload);
+      }
+
+      try {
+        await guardianService.create(payload);
+        return nextGuardian;
+      } catch (error) {
+        const apiMessage = extractApiErrorMessage(error);
+        if (import.meta.env.DEV) {
+          // eslint-disable-next-line no-console
+          console.error("[estudiantes] createGuardian failed:", error);
+        }
+        if (isConflictError(error)) {
+          await this.fetchGuardians(studentId);
+          const documentNumber = String(
+            data.documentNumber ?? data.documentoIdentidad ?? "",
+          )
+            .trim()
+            .toLowerCase();
+          const existingGuardian = (this.guardians[studentId] ?? []).find(
+            (guardian) =>
+              String(
+                guardian.documentNumber ?? guardian.documentoIdentidad ?? "",
+              )
+                .trim()
+                .toLowerCase() === documentNumber,
+          );
+
+          if (existingGuardian) {
+            return this.updateGuardian(studentId, existingGuardian.id, data);
+          }
+        }
+
+        throw error;
+      }
     },
     async updateGuardian(
       studentId: number,
@@ -552,10 +925,9 @@ export const useEstudiantesStore = defineStore("estudiantes", {
         this.guardians[studentId].find(
           (guardian) => guardian.id === guardianId,
         ) ?? null;
-      await estudiantesService.updateGuardian(
-        studentId,
+      await guardianService.updateInfo(
         guardianId,
-        (updatedGuardian ?? data) as Record<string, unknown>,
+        buildGuardianApiPayload(updatedGuardian ?? data, studentId),
       );
       return updatedGuardian;
     },
@@ -563,7 +935,7 @@ export const useEstudiantesStore = defineStore("estudiantes", {
       this.guardians[studentId] = (this.guardians[studentId] ?? []).filter(
         (guardian) => guardian.id !== guardianId,
       );
-      await estudiantesService.deleteGuardian(studentId, guardianId);
+      await guardianService.delete(guardianId, studentId);
     },
   },
 });

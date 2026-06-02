@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { inscripcionesService } from "@/services/api";
+import { inscriptionService } from "@/services/api";
 import { useEstudiantesStore } from "@/stores/estudiantesStore";
 import type { EstadoAprobacion } from "@/types/enums";
 import type { Inscripcion } from "@/types/inscripcion";
@@ -229,7 +229,7 @@ export const useMatriculasStore = defineStore("matriculas", {
         this.pagination.page = 1;
       }
       try {
-        const response = await inscripcionesService.getAll({
+        const response = await inscriptionService.getAll({
           page: this.pagination.page,
           perPage: this.pagination.perPage,
           search: this.filters.search,
@@ -254,33 +254,12 @@ export const useMatriculasStore = defineStore("matriculas", {
     async fetchMatriculas(params?: Partial<InscripcionesFilters>) {
       return this.fetchInscripciones(params);
     },
-    async fetchInscripcionById(id: number) {
-      this.loadingDetail = true;
-      this.error = null;
-      try {
-        const response = await inscripcionesService.getById(id);
-        const inscripcion = normalizeInscripcion(response.data);
-        this.selected = inscripcion;
-        this.syncInscripcion(inscripcion);
-        return inscripcion;
-      } catch (error) {
-        this.error =
-          error instanceof Error
-            ? error.message
-            : "No se pudo cargar el detalle de la inscripción.";
-        throw error;
-      } finally {
-        this.loadingDetail = false;
-      }
-    },
-    async fetchMatriculaById(id: number) {
-      return this.fetchInscripcionById(id);
-    },
+
     async aprobarInscripcion(id: number) {
       this.error = null;
       const estudiantesStore = useEstudiantesStore();
       try {
-        const response = await inscripcionesService.aprobar(id);
+        const response = await inscriptionService.approve(id);
         const inscripcion = normalizeInscripcion(
           response.data ?? { id, estado: "APROBADA" },
         );
@@ -295,56 +274,11 @@ export const useMatriculasStore = defineStore("matriculas", {
         throw error;
       }
     },
-    async updateEstado(id: number, estado: EstadoAprobacion) {
-      this.error = null;
-      try {
-        const response = await inscripcionesService.updateEstado(id, estado);
-        const inscripcion = normalizeInscripcion(
-          response.data ?? { id, estado },
-        );
-        this.syncInscripcion({ ...inscripcion, estado });
-        return inscripcion;
-      } catch (error) {
-        this.error =
-          error instanceof Error
-            ? error.message
-            : "No se pudo actualizar el estado de la inscripción.";
-        throw error;
-      }
-    },
-    async updateStatus(
-      id: number,
-      status: EstadoAprobacion | string,
-      _motivo?: string,
-    ) {
-      return this.updateEstado(
-        id,
-        status === "APROBADA" ? "APROBADA" : "PENDIENTE",
-      );
-    },
-    async assignInterview(id: number, date: string) {
-      const current = this.inscripciones.find(
-        (inscripcion) => inscripcion.id === id,
-      );
-      const next = normalizeInscripcion({
-        ...(current ?? { id }),
-        id,
-        estado: current?.estado ?? "PENDIENTE",
-        entrevista: {
-          id: current?.idEntrevista ?? 0,
-          franja: date,
-          cuposTotales: 0,
-        },
-      });
-      this.syncInscripcion(next);
-      return next;
-    },
+
     async approveAndCreateStudent(id: number) {
       const inscripcion = await this.aprobarInscripcion(id);
       return { studentId: inscripcion.idEstudiante };
     },
-    async rejectMatricula(id: number, _motivo: string) {
-      return this.updateEstado(id, "PENDIENTE");
-    },
+
   },
 });

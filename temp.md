@@ -216,7 +216,7 @@ Instancia de axios con:
   Interceptor de response: si 401 → logout y redirige a /login.
 
 Exporta funciones agrupadas:
-  estudiantesService: { getAll, getById, create, update, delete }
+  studentService: { getAll, getById, create, update, delete }
   aspirantesService:  { getAll, approve, reject, updateInterview }
   formularioService:  { getFields, saveFields }
   gruposService:      { getAll, create, update, delete }

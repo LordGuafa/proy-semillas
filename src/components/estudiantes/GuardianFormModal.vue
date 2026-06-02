@@ -23,7 +23,9 @@ const estudiantesStore = useEstudiantesStore();
 const submitAttempted = reactive({ value: false });
 const form = reactive({
   firstName: "",
+  secondName: "",
   lastName: "",
+  secondLastName: "",
   documentType: "",
   documentNumber: "",
   kinship: "",
@@ -47,11 +49,6 @@ const requiredFields = [
   "documentType",
   "documentNumber",
   "kinship",
-  "phone",
-  "email",
-  "homeAddress",
-  "city",
-  "department",
 ] as const;
 
 const errors = reactive<Record<string, string>>({});
@@ -73,7 +70,9 @@ function resetErrors() {
 function syncForm() {
   const guardian = props.guardian;
   form.firstName = guardian?.firstName ?? "";
+  form.secondName = guardian?.segundoNombre ?? "";
   form.lastName = guardian?.lastName ?? "";
+  form.secondLastName = guardian?.segundoApellido ?? "";
   form.documentType = guardian?.documentType ?? "";
   form.documentNumber = guardian?.documentNumber ?? "";
   form.kinship = guardian?.kinship ?? "";
@@ -132,28 +131,39 @@ function updateMainGuardian(value: boolean) {
 
 async function saveGuardian() {
   submitAttempted.value = true;
+  if (!Number.isFinite(props.studentId) || props.studentId <= 0) {
+    setFieldError(
+      "studentId",
+      "No hay un estudiante valido para asociar el acudiente.",
+    );
+    return;
+  }
   if (!validate()) return;
 
   const payload = {
     firstName: form.firstName.trim(),
+    secondName: form.secondName.trim() || undefined,       // ✅ era: segundoNombre
     lastName: form.lastName.trim(),
+    secondLastName: form.secondLastName.trim() || undefined, // ✅ era: segundoApellido
     documentType: form.documentType,
     documentNumber: form.documentNumber.trim(),
     kinship: form.kinship.trim(),
-    phone: form.phone.trim(),
-    email: form.email.trim(),
-    birthdate: form.birthdate
-      ? new Date(`${form.birthdate}T00:00:00`)
-      : undefined,
+    phone: form.phone.trim() || undefined,
+    email: form.email.trim() || undefined,
+    birthdate: form.birthdate || undefined,                 // ✅ era: new Date(`${form.birthdate}T00:00:00`)
     placeOfBirth: form.placeOfBirth.trim() || undefined,
-    occupation: form.occupation.trim(),
-    workplace: form.workplace.trim(),
-    homeAddress: form.homeAddress.trim(),
-    city: form.city.trim(),
-    department: form.department.trim(),
+    occupation: form.occupation.trim() || undefined,
+    workplace: form.workplace.trim() || undefined,
+    homeAddress: form.homeAddress.trim() || undefined,
+    city: form.city.trim() || undefined,
+    department: form.department.trim() || undefined,
     isMainGuardian: form.isMainGuardian,
     isPaymentResponsible: form.isPaymentResponsible,
   } as unknown as Guardian;
+
+  if (import.meta.env.DEV) {
+    console.log("[GuardianFormModal] payload →", payload);  // ✅ movido antes de los emits
+  }
 
   if (props.guardian) {
     await estudiantesStore.updateGuardian(
@@ -168,6 +178,7 @@ async function saveGuardian() {
   emit("saved");
   emit("close");
 }
+
 </script>
 
 <template>
@@ -179,6 +190,9 @@ async function saveGuardian() {
     @close="emit('close')"
   >
     <div class="space-y-5">
+      <p v-if="errors.studentId" class="text-sm text-red-600">
+        {{ errors.studentId }}
+      </p>
       <div class="grid gap-4 md:grid-cols-2">
         <BaseInput
           v-model="form.firstName"
@@ -188,11 +202,23 @@ async function saveGuardian() {
           required
         />
         <BaseInput
+          v-model="form.secondName"
+          label="Segundo nombre"
+          :error="submitAttempted.value ? errors.secondName : ''"
+          :readonly="readonly"
+        />
+        <BaseInput
           v-model="form.lastName"
           label="Apellido"
           :error="submitAttempted.value ? errors.lastName : ''"
           :readonly="readonly"
           required
+        />
+        <BaseInput
+          v-model="form.secondLastName"
+          label="Segundo apellido"
+          :error="submitAttempted.value ? errors.secondLastName : ''"
+          :readonly="readonly"
         />
         <BaseSelect
           v-model="form.documentType"
@@ -221,7 +247,6 @@ async function saveGuardian() {
           label="Teléfono"
           :error="submitAttempted.value ? errors.phone : ''"
           :readonly="readonly"
-          required
         />
         <BaseInput
           v-model="form.email"
@@ -229,12 +254,12 @@ async function saveGuardian() {
           type="email"
           :error="submitAttempted.value ? errors.email : ''"
           :readonly="readonly"
-          required
         />
         <BaseInput
           v-model="form.birthdate"
           label="Fecha nacimiento"
           type="date"
+          :error="submitAttempted.value ? errors.birthdate : ''"
           :readonly="readonly"
         />
         <BaseInput
@@ -246,11 +271,13 @@ async function saveGuardian() {
         <BaseInput
           v-model="form.occupation"
           label="Ocupación"
+          :error="submitAttempted.value ? errors.occupation : ''"
           :readonly="readonly"
         />
         <BaseInput
           v-model="form.workplace"
           label="Lugar de trabajo"
+          :error="submitAttempted.value ? errors.workplace : ''"
           :readonly="readonly"
         />
         <BaseInput
@@ -259,21 +286,18 @@ async function saveGuardian() {
           class="md:col-span-2"
           :error="submitAttempted.value ? errors.homeAddress : ''"
           :readonly="readonly"
-          required
         />
         <BaseInput
           v-model="form.city"
           label="Ciudad"
           :error="submitAttempted.value ? errors.city : ''"
           :readonly="readonly"
-          required
         />
         <BaseInput
           v-model="form.department"
           label="Departamento"
           :error="submitAttempted.value ? errors.department : ''"
           :readonly="readonly"
-          required
         />
       </div>
 
