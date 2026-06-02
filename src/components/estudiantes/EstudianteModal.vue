@@ -381,7 +381,7 @@ async function deleteGuardian(guardianId: number) {
           </BaseButton>
         </div>
 
-        <div v-if="estudiantesStore.loadingGuardians" class="grid gap-4 md:grid-cols-2">
+        <div v-if="estudiantesStore.loadingGuardians.size > 0" class="grid gap-4 md:grid-cols-2">
           <div class="h-64 animate-pulse rounded-2xl border border-gray-100 bg-gray-50" />
           <div class="h-64 animate-pulse rounded-2xl border border-gray-100 bg-gray-50" />
         </div>

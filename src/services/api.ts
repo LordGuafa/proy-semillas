@@ -87,8 +87,10 @@ export const timeSlotService = {
 export const inscriptionService = {
   create: (data: unknown) => api.post("/inscription/create", data),
   getAll: (params: unknown = {}) => api.get("/inscription", { params }),
-  createSchema: (data: unknown) => api.post(`/interview/schema`, data),
-  approve: (id: string | number) => api.post(`/interview/${id}/approve`),
+  createSchema: (data: unknown) => api.post(`/inscription/schema`, data),
+  getSchema: () => api.get(`/inscription/latest-form-schema`),
+  approve: (id: string | number) => api.patch(`/inscription/${id}/approve`),
+  reject: (id: string | number) => api.delete(`/inscription/${id}/reject`),
 };
 
 export const authService = {

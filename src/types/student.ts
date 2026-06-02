@@ -13,7 +13,7 @@ export interface Student extends Persona {
   fotoUrl?: string;
   estado: EstadoEstudiante;
   acudientes?: Guardian[];
-  firstname?: string;
+  firstname: string;
   lastname?: string;
   homeAddress?: string;
   city?: string;

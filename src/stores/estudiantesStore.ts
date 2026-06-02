@@ -530,7 +530,7 @@ export const useEstudiantesStore = defineStore("estudiantes", {
       estudiantes: normalizeStudents(persisted),
       guardians: {} as Record<number, Guardian[]>,
       loading: false,
-      loadingGuardians: false,
+      loadingGuardians: new Set<number>(),
     };
   },
   getters: {
@@ -706,27 +706,33 @@ export const useEstudiantesStore = defineStore("estudiantes", {
       if (this.guardians[studentId]) {
         return this.guardians[studentId];
       }
-      this.loadingGuardians = true;
+      // Loading guard: prevent concurrent requests for the same student
+      if (this.loadingGuardians.has(studentId)) {
+        return [];
+      }
+      this.loadingGuardians.add(studentId);
       try {
         const resp = (await guardianService.getByStudent(studentId)) as unknown;
         const raw = (resp && (resp as any).data) ?? resp;
-        let guardians: Array<Partial<Guardian> & { id?: string | number }> = [];
+        let rawGuardians: Array<Partial<Guardian> & { id?: string | number }> = [];
         if (Array.isArray(raw)) {
-          guardians = raw;
+          rawGuardians = raw;
+        } else if (raw && Array.isArray((raw as any).data)) {
+          rawGuardians = (raw as any).data;
         } else if (raw && Array.isArray((raw as any).parents)) {
-          guardians = (raw as any).parents;
+          rawGuardians = (raw as any).parents;
         } else if (raw && Array.isArray((raw as any).acudientes)) {
-          guardians = (raw as any).acudientes;
+          rawGuardians = (raw as any).acudientes;
         } else if (raw && Array.isArray((raw as any).guardians)) {
-          guardians = (raw as any).guardians;
+          rawGuardians = (raw as any).guardians;
         } else if (raw && (raw as any).parent) {
-          guardians = [(raw as any).parent];
-        } else {
-          guardians = [];
+          rawGuardians = [(raw as any).parent];
+        } else if (raw && (raw as any).acudiente) {
+          rawGuardians = [(raw as any).acudiente];
         }
 
         // Map backend snake_case fields to the shapes expected by normalizeGuardianRecord/UI
-        const mapped = guardians.map((g: any) => ({
+        const mapped = rawGuardians.map((g: any) => ({
           // ids
           id: g.id ?? g.id_persona ?? g.idPersona,
           usuarioSistemaId:
@@ -808,8 +814,12 @@ export const useEstudiantesStore = defineStore("estudiantes", {
 
         this.guardians[studentId] = normalizeGuardians(mapped as any);
         return this.guardians[studentId];
+      } catch (error) {
+        console.error(`[estudiantes] fetchGuardians failed for student ${studentId}:`, error);
+        this.guardians[studentId] = [];
+        return [];
       } finally {
-        this.loadingGuardians = false;
+        this.loadingGuardians.delete(studentId);
       }
     },
     async createGuardian(studentId: number, data: Omit<Guardian, "id">) {

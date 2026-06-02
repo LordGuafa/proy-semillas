@@ -6,7 +6,7 @@ import type { Inscripcion } from "@/types/inscripcion";
 
 export interface InscripcionesFilters {
   search: string;
-  estado: EstadoAprobacion | "";
+  estado: EstadoAprobacion | "EN_REVISION" | "ENTREVISTA" | "RECHAZADA" | "";
   fechaDesde: string;
   fechaHasta: string;
 }
@@ -54,7 +54,7 @@ function normalizeInscripcion(value: unknown): Inscripcion {
     idEstudiante: toNumber(data.idEstudiante ?? data.id_estudiante),
     idAcudiente: toNumber(data.idAcudiente ?? data.id_acudiente),
     idEntrevista:
-      data.idEntrevista !== undefined || data.id_entrevista !== undefined
+      data.idEntrevista != null || data.id_entrevista != null
         ? toNumber(data.idEntrevista ?? data.id_entrevista)
         : undefined,
     estado: normalizeEstado(data.estado),
@@ -78,6 +78,13 @@ function normalizeInscripcion(value: unknown): Inscripcion {
     formSchema: data.formSchema
       ? (toRecord(data.formSchema) as unknown as Inscripcion["formSchema"])
       : undefined,
+    status: data.status
+      ? (String(data.status) as Inscripcion["status"])
+      : undefined,
+    photoURL: data.photoURL ? String(data.photoURL) : undefined,
+    submittedAt: data.submittedAt ? String(data.submittedAt) : undefined,
+    interviewDate: data.interviewDate ? String(data.interviewDate) : undefined,
+    assignedTo: data.assignedTo ? String(data.assignedTo) : undefined,
   };
 }
 
@@ -101,7 +108,11 @@ function normalizeCollection(response: unknown): {
     ? payload.items
     : Array.isArray(payload.data)
       ? payload.data
-      : [];
+      : Array.isArray(payload.inscriptions)
+        ? payload.inscriptions
+        : Array.isArray(payload.inscripciones)
+          ? payload.inscripciones
+          : [];
   const pagination = toRecord(payload.pagination);
   const page = toNumber(pagination.page ?? payload.page, 1) || 1;
   const perPage =
@@ -178,7 +189,9 @@ export const useMatriculasStore = defineStore("matriculas", {
     inscripcionesFiltradas: (state) =>
       state.inscripciones.filter((inscripcion) => {
         const matchesEstado =
-          !state.filters.estado || inscripcion.estado === state.filters.estado;
+          !state.filters.estado ||
+          inscripcion.estado === state.filters.estado ||
+          inscripcion.status === state.filters.estado;
         return (
           matchesEstado &&
           matchesSearch(inscripcion, state.filters.search) &&
@@ -192,7 +205,9 @@ export const useMatriculasStore = defineStore("matriculas", {
     matriculasFiltradas: (state) =>
       state.inscripciones.filter((inscripcion) => {
         const matchesEstado =
-          !state.filters.estado || inscripcion.estado === state.filters.estado;
+          !state.filters.estado ||
+          inscripcion.estado === state.filters.estado ||
+          inscripcion.status === state.filters.estado;
         return (
           matchesEstado &&
           matchesSearch(inscripcion, state.filters.search) &&
@@ -221,7 +236,7 @@ export const useMatriculasStore = defineStore("matriculas", {
       }
       return inscripcion;
     },
-    async fetchInscripciones(params?: Partial<InscripcionesFilters>) {
+    async fetchInscriptions(params?: Partial<InscripcionesFilters>) {
       this.loading = true;
       this.error = null;
       if (params) {
@@ -240,6 +255,12 @@ export const useMatriculasStore = defineStore("matriculas", {
         const normalized = normalizeCollection(response.data);
         this.inscripciones = normalized.items;
         this.pagination = normalized.pagination;
+                console.log(
+                  "[matriculasStore] fetchInscripciones raw:",
+                  response.data,
+        );
+        console.log(this.inscripciones)
+
         return this.inscripciones;
       } catch (error) {
         this.error =
@@ -252,7 +273,7 @@ export const useMatriculasStore = defineStore("matriculas", {
       }
     },
     async fetchMatriculas(params?: Partial<InscripcionesFilters>) {
-      return this.fetchInscripciones(params);
+      return this.fetchInscriptions(params);
     },
 
     async aprobarInscripcion(id: number) {
