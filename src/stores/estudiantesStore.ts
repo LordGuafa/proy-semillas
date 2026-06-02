@@ -11,26 +11,50 @@ type StudentFilter = {
 
 type LegacyStudentRecord = {
   id?: string | number;
+  id_persona?: string | number;
   fullName?: string;
   firstname?: string;
+  firstName?: string;
   lastname?: string;
+  lastName?: string;
+  primer_nombre?: string;
+  segundo_nombre?: string | null;
+  primer_apellido?: string;
+  segundo_apellido?: string | null;
   homeAddress?: string;
+  direccion_residencia?: string;
   city?: string;
+  ciudad_residencia?: string | null;
   department?: string;
+  departamento_residencia?: string | null;
   strata?: string;
+  estrato?: number | string;
   hasLunch?: boolean;
+  tiene_almuerzo?: boolean;
   hasTransport?: boolean;
+  tiene_transporte_ruta?: boolean;
   status: "pending" | "active" | "inactive" | "graduated" | Student["status"];
+  estado?: Student["status"];
   photoURL?: string;
   photoUrl?: string;
+  foto_url?: string | null;
   documentoIdentidad?: string;
+  documento_identidad?: string;
   tipoDocumento?: Student["tipoDocumento"];
+  tipo_documento?: Student["tipoDocumento"];
   correoElectronico?: string;
+  correo_electronico?: string | null;
   telefono?: string;
+  created_at?: string;
+  updated_at?: string;
   fechaNacimiento?: string;
+  fecha_nacimiento?: string;
   paisNacimiento?: string;
+  pais_nacimiento?: string | null;
   departamentoNacimiento?: string;
+  departamento_nacimiento?: string | null;
   ciudadNacimiento?: string;
+  ciudad_nacimiento?: string | null;
   observations?: string;
   age?: number;
   group?: string;
@@ -83,63 +107,80 @@ function normalizeStudentRecord(
   const names = splitFullName(
     record.fullName ?? `${record.firstname ?? ""} ${record.lastname ?? ""}`,
   );
-  const numericId = Number(record.id ?? (record as any).id_persona ?? (record as any).id_persona);
+  const numericId = Number(record.id ?? record.id_persona);
   const fieldValues = record.fieldValues ?? {};
-
   const primerNombre =
-    (record as any).primer_nombre ?? record.firstname ?? names.firstname ?? "";
+    record.primer_nombre ?? record.firstname ?? record.firstName ?? names.firstname ?? "";
+  const segundoNombre = record.segundo_nombre ?? undefined;
   const primerApellido =
-    (record as any).primer_apellido ?? record.lastname ?? names.lastname ?? "";
+    record.primer_apellido ?? record.lastname ?? record.lastName ?? names.lastname ?? "";
+  const segundoApellido = record.segundo_apellido ?? undefined;
+  const direccionResidencia =
+    record.direccion_residencia ?? record.homeAddress ?? String(fieldValues.homeAddress ?? fieldValues.address ?? "");
+  const ciudadResidencia =
+    record.ciudad_residencia ?? record.city ?? (String(fieldValues.city ?? "") ? String(fieldValues.city ?? "") : undefined);
+  const departamentoResidencia =
+    record.departamento_residencia ?? record.department ?? (String(fieldValues.department ?? "") ? String(fieldValues.department ?? "") : undefined);
+  const estrato = Number(record.estrato ?? record.strata ?? fieldValues.strata ?? 0) || 0;
+  const estado = normalizeStatus(record.estado ?? record.status);
+  const documentoIdentidad = String(
+    record.documento_identidad ??
+    record.documentoIdentidad ??
+    fieldValues.documentoIdentidad ??
+    fieldValues.documentNumber ??
+    "",
+  );
+  const tipoDocumento = String(
+    record.tipo_documento ?? record.tipoDocumento ?? fieldValues.tipoDocumento ?? "CC",
+  ) as Student["tipoDocumento"];
+  const correoElectronico =
+    String(record.correo_electronico ?? record.correoElectronico ?? fieldValues.correoElectronico ?? "") || undefined;
+  const telefono = String(record.telefono ?? fieldValues.telefono ?? "") || undefined;
+  const fechaNacimiento =
+    String(record.fecha_nacimiento ?? record.fechaNacimiento ?? fieldValues.fechaNacimiento ?? "") || undefined;
+  const paisNacimiento =
+    String(record.pais_nacimiento ?? record.paisNacimiento ?? fieldValues.paisNacimiento ?? "") || undefined;
+  const departamentoNacimiento =
+    String(record.departamento_nacimiento ?? record.departamentoNacimiento ?? fieldValues.departamentoNacimiento ?? "") || undefined;
+  const ciudadNacimiento =
+    String(record.ciudad_nacimiento ?? record.ciudadNacimiento ?? fieldValues.ciudadNacimiento ?? "") || undefined;
+  const photoUrl = record.foto_url ?? record.photoURL ?? record.photoUrl;
 
   return {
     id: Number.isFinite(numericId) ? numericId : index + 1,
     usuarioSistemaId: undefined,
-    documentoIdentidad: String(
-      (record as any).documento_identidad ?? record.documentoIdentidad ??
-        fieldValues.documentoIdentidad ?? fieldValues.documentNumber ?? "",
-    ),
-    tipoDocumento: String(
-      (record as any).tipo_documento ?? record.tipoDocumento ?? fieldValues.tipoDocumento ?? "CC",
-    ) as Student["tipoDocumento"],
-    primerNombre: primerNombre,
-    segundoNombre: (record as any).segundo_nombre ?? undefined,
-    primerApellido: primerApellido,
-    segundoApellido: (record as any).segundo_apellido ?? undefined,
-    correoElectronico:
-      String((record as any).correo_electronico ?? record.correoElectronico ?? fieldValues.correoElectronico ?? "") || undefined,
-    telefono:
-      String((record as any).telefono ?? record.telefono ?? fieldValues.telefono ?? "") || undefined,
-    fechaNacimiento:
-      String((record as any).fecha_nacimiento ?? record.fechaNacimiento ?? fieldValues.fechaNacimiento ?? "") || undefined,
-    paisNacimiento:
-      String((record as any).pais_nacimiento ?? record.paisNacimiento ?? fieldValues.paisNacimiento ?? "") || undefined,
-    departamentoNacimiento:
-      String(
-        (record as any).departamento_nacimiento ?? record.departamentoNacimiento ?? fieldValues.departamentoNacimiento ?? "",
-      ) || undefined,
-    ciudadNacimiento:
-      String((record as any).ciudad_nacimiento ?? record.ciudadNacimiento ?? fieldValues.ciudadNacimiento ?? "") || undefined,
-    createdAt: String(
-      (record as any).created_at ?? (record as { createdAt?: string }).createdAt ?? new Date().toISOString(),
-    ),
-    updatedAt: String(
-      (record as any).updated_at ?? (record as { updatedAt?: string }).updatedAt ?? new Date().toISOString(),
-    ),
-    direccionResidencia:
-      (record as any).direccion_residencia ?? record.homeAddress ?? String(fieldValues.homeAddress ?? fieldValues.address ?? ""),
-    ciudadResidencia:
-      ((record as any).ciudad_residencia ?? record.city ?? String(fieldValues.city ?? "")) || undefined,
-    departamentoResidencia:
-      ((record as any).departamento_residencia ?? record.department ?? String(fieldValues.department ?? "")) || undefined,
-    estrato: Number((record as any).estrato ?? record.strata ?? fieldValues.strata ?? 0) || 0,
-    tieneAlmuerzo: (record as any).tiene_almuerzo ?? record.hasLunch ?? parseBoolean(fieldValues.hasLunch),
-    tieneTranporteRuta:
-      (record as any).tiene_transporte_ruta ?? record.hasTransport ?? parseBoolean(fieldValues.hasTransport),
-    fotoUrl: (record as any).foto_url ?? record.photoURL ?? record.photoUrl,
-    estado: normalizeStatus((record as any).estado ?? record.status) as Student["estado"],
-    status: normalizeStatus((record as any).estado ?? record.status),
+    documentoIdentidad,
+    tipoDocumento,
+    primerNombre,
+    segundoNombre,
+    primerApellido,
+    segundoApellido,
+    correoElectronico,
+    telefono,
+    fechaNacimiento,
+    paisNacimiento,
+    departamentoNacimiento,
+    ciudadNacimiento,
+    createdAt: String(record.created_at ?? new Date().toISOString()),
+    updatedAt: String(record.updated_at ?? new Date().toISOString()),
+    direccionResidencia,
+    ciudadResidencia,
+    departamentoResidencia,
+    estrato,
+    tieneAlmuerzo: parseBoolean(record.tiene_almuerzo ?? record.hasLunch ?? fieldValues.hasLunch),
+    tieneTranporteRuta: parseBoolean(record.tiene_transporte_ruta ?? record.hasTransport ?? fieldValues.hasTransport),
+    fotoUrl: photoUrl ?? undefined,
+    estado: estado as Student["estado"],
+    status: estado,
     firstname: primerNombre,
     lastname: primerApellido,
+    homeAddress: direccionResidencia,
+    city: ciudadResidencia,
+    department: departamentoResidencia,
+    strata: String(estrato),
+    hasLunch: parseBoolean(record.tiene_almuerzo ?? record.hasLunch ?? fieldValues.hasLunch),
+    hasTransport: parseBoolean(record.tiene_transporte_ruta ?? record.hasTransport ?? fieldValues.hasTransport),
+    photoURL: photoUrl ?? undefined,
   };
 }
 
@@ -332,21 +373,14 @@ export const useEstudiantesStore = defineStore("estudiantes", {
     async fetchEstudiantes() {
       this.loading = true;
       try {
-        // DEBUG: log API call and response to help trace missing students
-        // eslint-disable-next-line no-console
-        console.log('[estudiantes] fetching /students/all...');
         const resp = await estudiantesService.getAll();
-        // eslint-disable-next-line no-console
-        console.log('[estudiantes] raw response:', resp && resp.data ? resp.data : resp);
         const data = resp.data ?? {};
         const estudiantesArr = Array.isArray((data as any).students)
           ? (data as any).students
           : Array.isArray(data)
-          ? (data as any)
-          : [];
+            ? (data as any)
+            : [];
         const normalized = normalizeStudents(estudiantesArr as LegacyStudentRecord[]);
-        // eslint-disable-next-line no-console
-        console.log('[estudiantes] normalized count:', normalized.length, 'sample:', normalized.slice(0,3));
         this.estudiantes = normalized;
         this.persistStudents();
         return this.estudiantes;
@@ -389,17 +423,17 @@ export const useEstudiantesStore = defineStore("estudiantes", {
       );
       const updated = current
         ? cloneStudent({
-            ...current,
-            ...data,
-            id: normalizedId,
-            status: normalizeStatus(
-              (data as LegacyStudentRecord).status ?? current.status,
-            ),
-            photoURL:
-              (data as LegacyStudentRecord).photoURL ??
-              (data as LegacyStudentRecord).photoUrl ??
-              current.photoURL,
-          } as Student)
+          ...current,
+          ...data,
+          id: normalizedId,
+          status: normalizeStatus(
+            (data as LegacyStudentRecord).status ?? current.status,
+          ),
+          photoURL:
+            (data as LegacyStudentRecord).photoURL ??
+            (data as LegacyStudentRecord).photoUrl ??
+            current.photoURL,
+        } as Student)
         : null;
 
       this.estudiantes = this.estudiantes.map((student) =>
@@ -414,11 +448,18 @@ export const useEstudiantesStore = defineStore("estudiantes", {
     },
     async deleteEstudiante(id: string | number) {
       const normalizedId = Number(id);
-      this.estudiantes = this.estudiantes.filter(
-        (student) => student.id !== normalizedId,
-      );
-      this.persistStudents();
-      await estudiantesService.delete(id);
+      const backup = [...this.estudiantes]; // guarda estado previo
+
+      try {
+        await estudiantesService.delete(id); // primero el servidor
+        this.estudiantes = this.estudiantes.filter(
+          (student) => student.id !== normalizedId,
+        );
+        this.persistStudents();
+      } catch (error) {
+        this.estudiantes = backup; // revierte si falla
+        throw error; // propaga para que la UI pueda mostrar el error
+      }
     },
     upsertEstudiante(student: Partial<Student> & { id: number }) {
       const normalizedStudent = mergeStudent(
@@ -431,10 +472,10 @@ export const useEstudiantesStore = defineStore("estudiantes", {
         (existingStudent) => existingStudent.id === student.id,
       )
         ? this.estudiantes.map((existingStudent) =>
-            existingStudent.id === student.id
-              ? normalizedStudent
-              : existingStudent,
-          )
+          existingStudent.id === student.id
+            ? normalizedStudent
+            : existingStudent,
+        )
         : [normalizedStudent, ...this.estudiantes];
       this.persistStudents();
       return normalizedStudent;

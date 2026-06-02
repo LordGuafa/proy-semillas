@@ -14,6 +14,7 @@ const props = withDefaults(
     disabled?: boolean;
     readonly?: boolean;
     variant?: "default" | "chip";
+    labelPosition?: "inside" | "above";
   }>(),
   {
     placeholder: "Selecciona una opción",
@@ -22,6 +23,7 @@ const props = withDefaults(
     disabled: false,
     readonly: false,
     variant: "default",
+    labelPosition: "inside",
   },
 );
 
@@ -46,7 +48,38 @@ const optionEntries = computed(() =>
 
 <template>
   <div class="space-y-1.5">
-    <div class="relative">
+    <div v-if="labelPosition === 'above'" class="space-y-1.5">
+      <label :for="selectId" class="block text-sm font-medium text-gray-700 mb-1 font-comfortaa">
+        {{ label }}<span v-if="required" class="text-red-500">*</span>
+      </label>
+      <div class="relative">
+        <select
+          :id="selectId"
+          v-model="selectValue"
+          :aria-label="label"
+          :required="required"
+          :disabled="disabled"
+          :readonly="readonly"
+          class="panel-input appearance-none pr-10"
+          :class="variant === 'chip' ? 'rounded-full border-gray-200 bg-gray-100 text-sm font-medium text-gray-700 shadow-none' : ''"
+        >
+          <option v-if="placeholder && !required" value="">
+            {{ placeholder }}
+          </option>
+          <option
+            v-for="option in optionEntries"
+            :key="String(option.value)"
+            :value="option.value"
+          >
+            {{ option.label }}
+          </option>
+        </select>
+        <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
+          ▾
+        </span>
+      </div>
+    </div>
+    <div v-else class="relative">
       <select
         :id="selectId"
         v-model="selectValue"

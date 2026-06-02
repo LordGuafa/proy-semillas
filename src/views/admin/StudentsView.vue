@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { PencilSquareIcon, PlusIcon, TrashIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/vue/24/outline'
+import { EyeIcon, PencilSquareIcon, PlusIcon, TrashIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/vue/24/outline'
 import { useRoute } from 'vue-router'
 import BaseBadge from '@/components/ui/BaseBadge.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -22,15 +22,16 @@ const cityFilter = ref('all')
 const page = ref(1)
 const pageSize = 8
 const editorOpen = ref(false)
+const detailOpen = ref(false)
 const deleteModalOpen = ref(false)
 const selectedStudent = ref<Student | null>(null)
+const selectedDetailStudent = ref<Student | null>(null)
 const highlightedStudentId = ref<number | null>(null)
 let highlightTimer: number | undefined
 
 const columns = [
     { key: 'photo', label: 'Avatar' },
     { key: 'fullName', label: 'Nombre completo' },
-    { key: 'city', label: 'Ciudad' },
     { key: 'strata', label: 'Estrato' },
     { key: 'lunch', label: 'Almuerzo' },
     { key: 'transport', label: 'Transporte' },
@@ -97,6 +98,11 @@ function openCreateModal() {
 function openEditModal(student: Student) {
     selectedStudent.value = student
     editorOpen.value = true
+}
+
+function openDetailModal(student: Student) {
+    selectedDetailStudent.value = student
+    detailOpen.value = true
 }
 
 function askDelete(student: Student) {
@@ -217,13 +223,13 @@ watch(
             </template>
 
             <template #cell-lunch="{ row }">
-                <CheckCircleIcon v-if="row.hasLunch" class="h-5 w-5 text-primary" aria-label="Incluye almuerzo" />
-                <XCircleIcon v-else class="h-5 w-5 text-gray-300" aria-label="No incluye almuerzo" />
+                <CheckCircleIcon v-if="row.hasLunch" class="h-5 w-5 text-green-500" aria-label="Incluye almuerzo" />
+                <XCircleIcon v-else class="h-5 w-5 text-red-500" aria-label="No incluye almuerzo" />
             </template>
 
             <template #cell-transport="{ row }">
-                <CheckCircleIcon v-if="row.hasTransport" class="h-5 w-5 text-primary" aria-label="Incluye transporte" />
-                <XCircleIcon v-else class="h-5 w-5 text-gray-300" aria-label="No incluye transporte" />
+                <CheckCircleIcon v-if="row.hasTransport" class="h-5 w-5 text-green-500" aria-label="Incluye transporte" />
+                <XCircleIcon v-else class="h-5 w-5 text-red-500" aria-label="No incluye transporte" />
             </template>
 
             <template #cell-status="{ row }">
@@ -234,9 +240,17 @@ watch(
                 <div class="flex items-center gap-2">
                     <button
                         type="button"
+                        class="rounded-full p-2 text-gray-500 transition hover:bg-gray-100"
+                        aria-label="Ver detalles del estudiante"
+                        @click.stop="openDetailModal(row as Student)" 
+                    >
+                        <EyeIcon class="h-5 w-5" />
+                    </button>
+                    <button
+                        type="button"
                         class="rounded-full p-2 text-accent transition hover:bg-accent/10"
                         aria-label="Editar estudiante"
-                        @click="openEditModal(row as Student)"
+                        @click.stop="openEditModal(row as Student)"
                     >
                         <PencilSquareIcon class="h-5 w-5" />
                     </button>
@@ -244,7 +258,7 @@ watch(
                         type="button"
                         class="rounded-full p-2 text-red-400 transition hover:bg-red-50 hover:text-red-600"
                         aria-label="Eliminar estudiante"
-                        @click="askDelete(row as Student)"
+                        @click.stop="askDelete(row as Student)"  
                     >
                         <TrashIcon class="h-5 w-5" />
                     </button>
@@ -257,6 +271,13 @@ watch(
             :student="selectedStudent"
             @close="editorOpen = false"
             @saved="editorOpen = false"
+        />
+
+        <EstudianteModal
+            :open="detailOpen"
+            :student="selectedDetailStudent"
+            readonly
+            @close="detailOpen = false"
         />
 
         <BaseModal :open="deleteModalOpen" size="sm" title="Confirmar eliminación" @close="deleteModalOpen = false">
