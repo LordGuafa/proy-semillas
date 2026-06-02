@@ -66,6 +66,11 @@ export const interviewService = {
   create: (data: unknown) => api.post("/interview/create", data),
   getTimeSlotById: (id: number | string) => api.get(`/time_slot/${id}`),
   createSchema:(data:unknown)=>api.post(`/interview/schema`,data),
+  markAsAssisted: (id: number | string) =>
+    api.patch(`/interview/${id}/assisted`),
+
+  markAsUnassisted: (id: number | string) =>
+    api.patch(`/interview/${id}/unassisted`),
 };
 
 export const timeSlotService = {

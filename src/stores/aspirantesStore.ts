@@ -1,9 +1,12 @@
 import { defineStore } from "pinia";
-import {interviewService } from "@/services/api";
+import { interviewService } from "@/services/api";
 import { useEstudiantesStore } from "@/stores/estudiantesStore";
 import { readJSON, writeJSON } from "@/utils/storage";
 
-export type ApplicantStatus = "pending" | "active" | "inactive";
+export type ApplicantStatus =
+  | "AGENDADA"
+  | "REALIZADA"
+  | "INASISTENCIA";
 export type ApplicantRecord = {
   id: string;
   fullName: string;
@@ -22,6 +25,7 @@ function formatInterviewDate(value: string): string {
   if (Number.isNaN(date.getTime())) return value;
   return date.toISOString();
 }
+
 
 export const useAspirantesStore = defineStore("aspirantes", {
   state: () => ({
@@ -46,13 +50,15 @@ export const useAspirantesStore = defineStore("aspirantes", {
             } catch {
               interviewDate = String(it.id_franja_entrevista ?? "");
             }
+            const backendStatus = String(it.estado_enum ?? "AGENDADA");
+
             return {
               id: String(it.id),
               fullName:
                 info.nom_estudiante ?? info.nombre ?? it.correo_form_aspirante ?? 'Sin nombre',
               sentDate: it.created_at ?? '',
               interviewDate,
-              status: 'pending' as ApplicantStatus,
+              status: backendStatus,
               rejectionReason: undefined,
               fieldValues: { ...(info as Record<string, unknown>), correo: it.correo_form_aspirante },
             } as ApplicantRecord;
@@ -79,6 +85,25 @@ export const useAspirantesStore = defineStore("aspirantes", {
         }
       } finally {
         this.loading = false;
+      }
+    },
+    async marcarAsistida(id: string) {
+      await interviewService.markAsAssisted(id);
+
+      const applicant = this.aspirantes.find(a => a.id === id);
+
+      if (applicant) {
+        applicant.status = "REALIZADA";
+      }
+    },
+
+    async marcarInasistencia(id: string) {
+      await interviewService.markAsUnassisted(id);
+
+      const applicant = this.aspirantes.find(a => a.id === id);
+
+      if (applicant) {
+        applicant.status = "INASISTIDA";
       }
     },
   },

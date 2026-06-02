@@ -22,7 +22,6 @@ const aspirantesStore = useAspirantesStore();
 const formularioStore = useFormularioStore();
 const selectedApplicant = ref<ApplicantRecord | null>(null);
 const selectedInterviewData = ref<any | null>(null);
-const rejectReason = ref("");
 const readOnlyModalOpen = ref(false);
 const rejectModalOpen = ref(false);
 const columns = [
@@ -32,11 +31,12 @@ const columns = [
   { key: "status", label: "Estado" },
 ];
 const applicantRows = computed(() =>
-  aspirantesStore.aspirantes.filter((item) => item.status === "pending"),
+  aspirantesStore.aspirantes,
 );
 const selectedApplicantFields = computed(() =>
   Object.entries(selectedApplicant.value?.fieldValues ?? {}),
 );
+
 
 const interviewFieldLabelMap = computed(() => {
   const labels = new Map<string, string>();
@@ -56,6 +56,15 @@ const interviewFieldLabelMap = computed(() => {
 
   return labels;
 });
+
+function formatInterviewStatus(status?: string) {
+  const labels: Record<string, string> = {
+    AGENDADA: "Agendada",
+    ASSISTED: "Asistió",
+    UNASSISTED: "Inasistencia",
+  };
+  return labels[status ?? ""] ?? status ?? "Sin estado";
+}
 
 const technicalFieldKeys = new Set([
   "id",
@@ -152,18 +161,33 @@ async function openDetails(applicant: ApplicantRecord) {
 }
 function openReject(applicant: ApplicantRecord) {
   selectedApplicant.value = applicant;
-  rejectReason.value = applicant.rejectionReason ?? "";
   rejectModalOpen.value = true;
 }
+function getStatusVariant(status?: string) {
+  switch (status) {
+    case "AGENDADA":
+      return "warning";   // amarillo
+
+    case "REALIZADA":
+      return "active";    // verde
+
+    case "INASISTENCIA":
+      return "inactive";  // gris
+
+    default:
+      return "inactive";
+  }
+}
 async function approveApplicant(applicant: ApplicantRecord) {
-  await aspirantesStore.aprobarAspirante(applicant.id);
+  await aspirantesStore.marcarAsistida(applicant.id);
 }
 async function confirmReject() {
-  if (selectedApplicant.value)
-    await aspirantesStore.rechazarAspirante(
+  if (selectedApplicant.value) {
+    await aspirantesStore.marcarInasistencia(
       selectedApplicant.value.id,
-      rejectReason.value,
     );
+  }
+
   rejectModalOpen.value = false;
 }
 onMounted(() => {
@@ -181,12 +205,8 @@ onMounted(() => {
       </p>
     </div>
     <BaseCard>
-      <BaseTable
-        :columns="columns"
-        :rows="applicantRows"
-        :loading="aspirantesStore.loading"
-        empty-message="No hay aspirantes pendientes."
-      >
+      <BaseTable :columns="columns" :rows="applicantRows" :loading="aspirantesStore.loading"
+        empty-message="No hay aspirantes pendientes.">
         <template #cell-sentDate="{ row }">
           {{ formatInterviewDate(row.sentDate) }}
         </template>
@@ -194,44 +214,28 @@ onMounted(() => {
           {{ formatInterviewDate(row.interviewDate) }}
         </template>
         ><template #cell-status="{ row }">
-          <BaseBadge :status="row.status" /> </template
-        ><template #actions="{ row }">
+          <BaseBadge :variant="getStatusVariant(row.status)">
+            {{ formatInterviewStatus(row.status) }}
+          </BaseBadge>
+        </template><template #actions="{ row }">
           <div class="flex items-center gap-2">
-            <button
-              type="button"
-              class="rounded-full p-2 text-gray-500 transition hover:bg-gray-100"
-              aria-label="Ver detalles"
-              title="Ver detalles de la entrevista"
-              @click="openDetails(row as ApplicantRecord)"
-            >
-              <EyeIcon class="h-5 w-5" /></button
-            ><button
-              type="button"
-              class="rounded-full p-2 text-primary transition hover:bg-primary/10"
-              aria-label="Aprobar aspirante"
-              title="Aprobar aspirante"
-              @click="approveApplicant(row as ApplicantRecord)"
-            >
-              <CheckCircleIcon class="h-5 w-5" /></button
-            ><button
-              type="button"
-              class="rounded-full p-2 text-red-500 transition hover:bg-red-50"
-              aria-label="Rechazar aspirante"
-              title="Rechazar aspirante"
-              @click="openReject(row as ApplicantRecord)"
-            >
+            <button type="button" class="rounded-full p-2 text-gray-500 transition hover:bg-gray-100"
+              aria-label="Ver detalles" title="Ver detalles de la entrevista"
+              @click="openDetails(row as ApplicantRecord)">
+              <EyeIcon class="h-5 w-5" />
+            </button><button type="button" class="rounded-full p-2 text-primary transition hover:bg-primary/10"
+              title="Marcar asistencia" aria-label="Marcar asistencia"
+              @click="approveApplicant(row as ApplicantRecord)">
+              <CheckCircleIcon class="h-5 w-5" />
+            </button><button type="button" class="rounded-full p-2 text-red-500 transition hover:bg-red-50"
+              title="Marcar inasistencia" aria-label="Marcar inasistencia" @click="openReject(row as ApplicantRecord)">
               <XCircleIcon class="h-5 w-5" />
             </button>
           </div>
         </template>
       </BaseTable>
     </BaseCard>
-    <BaseModal
-      :open="readOnlyModalOpen"
-      size="md"
-      title="Detalle del aspirante"
-      @close="readOnlyModalOpen = false"
-    >
+    <BaseModal :open="readOnlyModalOpen" size="md" title="Detalle del aspirante" @close="readOnlyModalOpen = false">
       <div v-if="selectedApplicant" class="space-y-4 text-sm text-gray-600">
         <p><strong>Nombre:</strong> {{ selectedApplicant.fullName }}</p>
         <p><strong>Fecha de envío:</strong> {{ formatInterviewDate(selectedApplicant.sentDate) }}</p>
@@ -243,11 +247,8 @@ onMounted(() => {
         <div class="mt-2">
           <p class="mb-2 font-semibold text-primary">Información del formulario</p>
           <div class="space-y-2 rounded-xl bg-gray-50 p-4 text-sm">
-            <div
-              v-for="[key, value] in interviewDisplayFields"
-              :key="key"
-              class="flex flex-col gap-1 border-b border-gray-100 pb-2 last:border-b-0 last:pb-0"
-            >
+            <div v-for="[key, value] in interviewDisplayFields" :key="key"
+              class="flex flex-col gap-1 border-b border-gray-100 pb-2 last:border-b-0 last:pb-0">
               <span class="font-medium text-gray-700">{{ formatFieldLabel(key) }}</span>
               <span class="text-gray-600">{{ value ?? '—' }}</span>
             </div>
@@ -255,23 +256,14 @@ onMounted(() => {
         </div>
       </div>
     </BaseModal>
-    <BaseModal
-      :open="rejectModalOpen"
-      size="sm"
-      title="Rechazar aspirante"
-      @close="rejectModalOpen = false"
-    >
-      <div class="space-y-4">
-        <BaseInput v-model="rejectReason" label="Motivo opcional" />
-      </div>
+    <BaseModal :open="rejectModalOpen" size="sm" title="Registrar inasistencia" @close="rejectModalOpen = false">
+
       <template #footer>
         <div class="flex justify-end gap-3">
-          <BaseButton variant="ghost" @click="rejectModalOpen = false"
-            >Cancelar</BaseButton
-          >
-          <BaseButton variant="danger" @click="confirmReject"
-            >Rechazar</BaseButton
-          >
+          <BaseButton variant="ghost" @click="rejectModalOpen = false">Cancelar</BaseButton>
+          <BaseButton variant="danger" @click="confirmReject">
+            Registrar inasistencia
+          </BaseButton>
         </div>
       </template>
     </BaseModal>
