@@ -37,7 +37,7 @@ export const studentService = {
 export const guardianService = {
   getByStudent: (studentId: string | number) =>
     api.get(`/students/estudiante/${studentId}`),
-  create: (data: unknown) => api.post("/parent", data),
+  create: (data: unknown) => api.post("/parent/", data),
   updateInfo: (id: string | number, data: unknown) =>
     api.patch(`/parent/${id}`, data),
   delete: (acudienteId: string | number, estudianteId: string | number) =>

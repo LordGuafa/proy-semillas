@@ -58,6 +58,7 @@ const guardianList = computed(() => {
 
 const guardianCount = computed(() => guardianList.value.length);
 const isReadOnly = computed(() => Boolean(props.readonly));
+const managedStudentId = computed(() => Number(props.student?.id ?? 0));
 const guardianTabLabel = computed(() => `Acudientes (${guardianCount.value})`);
 const modalTitle = computed(() => {
   if (!props.student) return "Nuevo estudiante";
@@ -159,6 +160,7 @@ async function saveStudent() {
 }
 
 function openCreateGuardian() {
+  if (managedStudentId.value <= 0) return;
   editingGuardian.value = null;
   guardianModalOpen.value = true;
 }
@@ -358,6 +360,7 @@ async function deleteGuardian(guardianId: number) {
             v-if="!isReadOnly"
             variant="accent"
             :icon="PlusIcon"
+            :disabled="managedStudentId <= 0"
             @click="openCreateGuardian"
             >Añadir acudiente</BaseButton
           >
@@ -408,7 +411,7 @@ async function deleteGuardian(guardianId: number) {
 
   <GuardianFormModal
     :open="guardianModalOpen"
-    :student-id="student?.id ?? 0"
+    :student-id="managedStudentId"
     :guardian="editingGuardian"
     :readonly="isReadOnly"
     @close="guardianModalOpen = false"

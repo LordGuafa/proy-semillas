@@ -10,7 +10,9 @@ export interface Guardian extends Persona {
   esPrincipal: boolean;
   esResponsablePago: boolean;
   firstName?: string;
+  secondName?: string;
   lastName?: string;
+  secondLastName?: string;
   kinship?: string;
   occupation?: string;
   workplace?: string;

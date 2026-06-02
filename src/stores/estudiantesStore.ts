@@ -220,9 +220,12 @@ function normalizeGuardianRecord(
       record.documentType ?? record.tipoDocumento ?? "CC",
     ) as Guardian["tipoDocumento"],
     primerNombre: String(record.firstName ?? record.primerNombre ?? ""),
-    segundoNombre: undefined,
+    segundoNombre:
+      String(record.secondName ?? record.segundoNombre ?? "") || undefined,
     primerApellido: String(record.lastName ?? record.primerApellido ?? ""),
-    segundoApellido: undefined,
+    segundoApellido:
+      String(record.secondLastName ?? record.segundoApellido ?? "") ||
+      undefined,
     correoElectronico:
       String(record.email ?? record.correoElectronico ?? "") || undefined,
     telefono: String(record.phone ?? record.telefono ?? "") || undefined,
@@ -328,29 +331,133 @@ function mergeStudent(
   return cloneStudent({ ...base, ...next, id: next.id } as Student);
 }
 
+function cleanOptionalString(value: unknown): string | undefined {
+  if (value === null || value === undefined) return undefined;
+  const text = String(value).trim();
+  return text ? text : undefined;
+}
+
+function cleanOptionalDate(value: unknown): string | undefined {
+  if (!value) return undefined;
+  const date = value instanceof Date ? value : new Date(String(value));
+  return Number.isNaN(date.getTime())
+    ? undefined
+    : date.toISOString().slice(0, 10);
+}
+
 function buildGuardianApiPayload(
   guardian: Partial<Guardian>,
   studentId: number,
 ): Record<string, unknown> {
-  return {
-    correo_electronico: guardian.email ?? guardian.correoElectronico ?? "",
-    documento_identidad:
-      guardian.documentNumber ?? guardian.documentoIdentidad ?? "",
-    es_principal: Boolean(guardian.isMainGuardian ?? guardian.esPrincipal),
-    es_principal_estudiante: Boolean(
-      guardian.isMainGuardian ?? guardian.esPrincipal,
-    ),
+  // ✅ Extraer campos requeridos primero para poder loguearlos si faltan
+  const primerNombre = cleanOptionalString(
+    guardian.firstName ?? guardian.primerNombre,
+  );
+  const primerApellido = cleanOptionalString(
+    guardian.lastName ?? guardian.primerApellido,
+  );
+  const parentesco = cleanOptionalString(
+    guardian.kinship ?? guardian.parentesco,
+  );
+  const documentoIdentidad = cleanOptionalString(
+    guardian.documentNumber ?? guardian.documentoIdentidad,
+  );
+
+  if (import.meta.env.DEV) {
+    if (
+      !primerNombre ||
+      !primerApellido ||
+      !parentesco ||
+      !documentoIdentidad
+    ) {
+      console.error("[buildGuardianApiPayload] Campos requeridos faltantes:", {
+        primerNombre,
+        primerApellido,
+        parentesco,
+        documentoIdentidad,
+        guardianRecibido: guardian,
+      });
+    }
+  }
+
+  const payload: Record<string, unknown> = {
+    documento_identidad: documentoIdentidad,
+    tipo_documento:
+      cleanOptionalString(
+        guardian.documentType ?? guardian.tipoDocumento ?? "CC",
+      ) ?? "CC",
+    primer_nombre: primerNombre,
+    primer_apellido: primerApellido,
+    parentesco,
+    id_estudiante: studentId,
     es_responsable_pago: Boolean(
       guardian.isPaymentResponsible ?? guardian.esResponsablePago,
     ),
-    id_estudiante: studentId,
-    ocupacion: guardian.occupation ?? guardian.ocupacion ?? "",
-    parentesco: guardian.kinship ?? guardian.parentesco ?? "",
-    primer_apellido: guardian.lastName ?? guardian.primerApellido ?? "",
-    primer_nombre: guardian.firstName ?? guardian.primerNombre ?? "",
-    telefono: guardian.phone ?? guardian.telefono ?? "",
-    tipo_documento: guardian.documentType ?? guardian.tipoDocumento ?? "CC",
   };
+
+  const optionalFields = {
+    segundo_nombre: cleanOptionalString(
+      guardian.secondName ?? guardian.segundoNombre, // ✅ secondName ahora llega correctamente
+    ),
+    segundo_apellido: cleanOptionalString(
+      guardian.secondLastName ?? guardian.segundoApellido, // ✅ secondLastName ahora llega correctamente
+    ),
+    correo_electronico: cleanOptionalString(
+      guardian.email ?? guardian.correoElectronico,
+    ),
+    telefono: cleanOptionalString(guardian.phone ?? guardian.telefono),
+    fecha_nacimiento: cleanOptionalDate(guardian.birthdate), // ✅ cleanOptionalDate maneja el string directamente
+    ocupacion: cleanOptionalString(guardian.occupation ?? guardian.ocupacion),
+    nombre_empresa_trabajo: cleanOptionalString(
+      guardian.workplace ?? guardian.nombreEmpresaTrabajo,
+    ),
+    direccion_casa: cleanOptionalString(
+      guardian.homeAddress ?? guardian.direccionCasa,
+    ),
+    ciudad_casa: cleanOptionalString(guardian.city ?? guardian.ciudadCasa),
+    departamento_casa: cleanOptionalString(
+      guardian.department ?? guardian.departamentoCasa,
+    ),
+  };
+
+  Object.entries(optionalFields).forEach(([key, value]) => {
+    if (value !== undefined) {
+      payload[key] = value;
+    }
+  });
+
+  return payload;
+}
+
+function isConflictError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const response = (error as { response?: { status?: number } }).response;
+  return response?.status === 409;
+}
+
+function extractApiErrorMessage(error: unknown): string | null {
+  if (!error || typeof error !== "object") return null;
+  const response = (
+    error as {
+      response?: { data?: unknown; status?: number };
+    }
+  ).response;
+  const data = response?.data as
+    | { detail?: unknown; message?: unknown }
+    | string
+    | undefined;
+
+  if (typeof data === "string" && data.trim()) {
+    return data;
+  }
+
+  if (data && typeof data === "object") {
+    const detail = data.detail ?? data.message;
+    if (typeof detail === "string" && detail.trim()) return detail;
+    if (Array.isArray(detail)) return detail.map(String).join("; ");
+  }
+
+  return null;
 }
 
 export const useEstudiantesStore = defineStore("estudiantes", {
@@ -644,6 +751,9 @@ export const useEstudiantesStore = defineStore("estudiantes", {
       }
     },
     async createGuardian(studentId: number, data: Omit<Guardian, "id">) {
+      if (!Number.isFinite(studentId) || studentId <= 0) {
+        throw new Error("ID de estudiante invalido para crear acudiente.");
+      }
       const guardians = this.guardians[studentId] ?? [];
       const nextGuardian: Guardian = {
         ...data,
@@ -672,12 +782,55 @@ export const useEstudiantesStore = defineStore("estudiantes", {
             ),
         );
       }
+      console.log("[createGuardian] nextGuardian antes de buildPayload:", {
+        firstName: nextGuardian.firstName,
+        lastName: nextGuardian.lastName,
+        kinship: nextGuardian.kinship,
+        documentNumber: nextGuardian.documentNumber,
+        secondName: nextGuardian.secondName,
+        primerNombre: nextGuardian.primerNombre,
+        primerApellido: nextGuardian.primerApellido,
+      });
+      const payload = buildGuardianApiPayload(nextGuardian, studentId);
+      console.log("[createGuardian] payload construido:", payload); // ← Y ESTO
 
-      await guardianService.create(
-        buildGuardianApiPayload(nextGuardian, studentId),
-      );
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.log("[estudiantes] createGuardian payload:", payload);
+      }
 
-      return nextGuardian;
+      try {
+        await guardianService.create(payload);
+        return nextGuardian;
+      } catch (error) {
+        const apiMessage = extractApiErrorMessage(error);
+        if (import.meta.env.DEV) {
+          // eslint-disable-next-line no-console
+          console.error("[estudiantes] createGuardian failed:", error);
+        }
+        if (isConflictError(error)) {
+          await this.fetchGuardians(studentId);
+          const documentNumber = String(
+            data.documentNumber ?? data.documentoIdentidad ?? "",
+          )
+            .trim()
+            .toLowerCase();
+          const existingGuardian = (this.guardians[studentId] ?? []).find(
+            (guardian) =>
+              String(
+                guardian.documentNumber ?? guardian.documentoIdentidad ?? "",
+              )
+                .trim()
+                .toLowerCase() === documentNumber,
+          );
+
+          if (existingGuardian) {
+            return this.updateGuardian(studentId, existingGuardian.id, data);
+          }
+        }
+
+        throw error;
+      }
     },
     async updateGuardian(
       studentId: number,
