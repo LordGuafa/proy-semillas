@@ -103,7 +103,7 @@ export const useAspirantesStore = defineStore("aspirantes", {
       const applicant = this.aspirantes.find(a => a.id === id);
 
       if (applicant) {
-        applicant.status = "INASISTIDA";
+        applicant.status = "INASISTENCIA";
       }
     },
   },
