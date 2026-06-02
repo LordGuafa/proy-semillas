@@ -15,6 +15,7 @@ import BaseSelect from "@/components/ui/BaseSelect.vue";
 import BaseTable from "@/components/ui/BaseTable.vue";
 import MatriculaDetailModal from "@/components/matriculas/MatriculaDetailModal.vue";
 import { useMatriculasStore } from "@/stores/matriculasStore";
+import { useEstudiantesStore } from "@/stores/estudiantesStore";
 import type { Matricula, MatriculaStatus } from "@/types/inscripcion";
 import {
   matriculaStatusLabel,
@@ -22,7 +23,9 @@ import {
 } from "@/types/inscripcion";
 
 const store = useMatriculasStore();
+const estStore = useEstudiantesStore();
 const detailOpen = ref(false);
+
 const searchModel = computed({
   get: () => store.filters.search,
   set: (value: string) => {
@@ -59,9 +62,9 @@ const columns = [
   { key: "id", label: "#" },
   { key: "aspirante", label: "Aspirante" },
   { key: "acudiente", label: "Acudiente" },
+  { key: "telefono", label: "Teléfono" },
+  { key: "direccion", label: "Dirección" },
   { key: "submittedAt", label: "Fecha envío" },
-  { key: "interviewDate", label: "Entrevista" },
-  { key: "assignedTo", label: "Asignado a" },
   { key: "status", label: "Estado" },
 ];
 
@@ -116,40 +119,35 @@ const subtitle = computed(() =>
 );
 
 function getStudentFullName(matricula: Matricula): string {
-  const studentData = matricula.studentData ?? {};
-  const firstName = String(
-    studentData.firstname ?? studentData.firstName ?? studentData.name ?? "",
+  if (!matricula.idEstudiante) return "Sin estudiante";
+  const s = estStore.estudiantes.find(
+    (e) => e.id === matricula.idEstudiante,
   );
-  const lastName = String(studentData.lastname ?? studentData.lastName ?? "");
-  const composed = `${firstName} ${lastName}`.trim();
-  if (composed) return composed;
-  const fallback = Object.values(studentData).find(
-    (value) => typeof value === "string" && value.trim(),
-  );
-  return typeof fallback === "string" ? fallback : "Sin nombre";
+  if (!s) return "Cargando...";
+  return `${s.firstname ?? ""} ${s.lastname ?? ""}`.trim() || "Sin nombre";
 }
 
 function getGuardianName(matricula: Matricula): string {
-  const guardianData = matricula.guardianData ?? {};
-  const firstName = String(
-    guardianData.firstname ??
-      guardianData.firstName ??
-      guardianData.name ??
-      guardianData.nombre ??
-      "",
-  );
-  const lastName = String(
-    guardianData.lastname ??
-      guardianData.lastName ??
-      guardianData.apellidos ??
-      "",
-  );
-  const composed = `${firstName} ${lastName}`.trim();
-  if (composed) return composed;
-  const fallback = Object.values(guardianData).find(
-    (value) => typeof value === "string" && value.trim(),
-  );
-  return typeof fallback === "string" ? fallback : "—";
+  if (!matricula.idAcudiente || !matricula.idEstudiante) return "—";
+  const guardians = estStore.guardians[matricula.idEstudiante];
+  if (!guardians) return "—";
+  const g = guardians.find((g) => g.id === matricula.idAcudiente);
+  if (!g) return "—";
+  return `${g.firstName ?? g.primerNombre ?? ""} ${g.lastName ?? g.primerApellido ?? ""}`.trim() || "—";
+}
+
+function getGuardianPhone(matricula: Matricula): string {
+  const form = matricula.informacionForm;
+  if (!form) return "—";
+  const phone = form.acudiente_telefono_fijo ?? form.responsable_telefono_fijo ?? form.telefonoAcudiente;
+  return phone ? String(phone) : "—";
+}
+
+function getStudentAddress(matricula: Matricula): string {
+  const form = matricula.informacionForm;
+  if (!form) return "—";
+  const address = form.barrio ?? form.direccion ?? form.direccionResidencia;
+  return address ? String(address) : "—";
 }
 
 function formatDate(value?: string): string {
@@ -168,8 +166,13 @@ function rowClass(row: Record<string, any>): string {
   const matricula = row as Matricula;
   if (matricula.estado === "PENDIENTE")
     return "border-l-4 border-l-accent bg-accent/5";
-  if (String(matricula.estado) === "RECHAZADA") return "text-gray-400";
+  if (String(matricula.status) === "RECHAZADA") return "text-gray-400";
   return "";
+}
+
+async function loadGuardiansForTable() {
+  const ids = [...new Set(store.inscripciones.map((i) => i.idEstudiante).filter(Boolean))];
+  await Promise.all(ids.map((id) => estStore.fetchGuardians(id)));
 }
 
 async function fetchMatriculas(
@@ -180,12 +183,22 @@ async function fetchMatriculas(
     fechaHasta: string;
   }>,
 ) {
-  await store.fetchInscripciones(params as Parameters<typeof store.fetchInscripciones>[0]);
+  await store.fetchInscriptions(params as Parameters<typeof store.fetchInscriptions>[0]);
+  if (estStore.estudiantes.length === 0) {
+    await estStore.fetchEstudiantes();
+  }
+  await loadGuardiansForTable();
 }
 
 async function openDetail(matriculaId: number) {
-  await store.fetchInscripcionById(matriculaId);
-  detailOpen.value = true;
+  const matricula = store.inscripciones.find(m => m.id === matriculaId);
+  if (matricula) {
+    store.selected = matricula;
+    if (estStore.estudiantes.length === 0) {
+      await estStore.fetchEstudiantes();
+    }
+    detailOpen.value = true;
+  }
 }
 
 function activateCardFilter(status: MatriculaStatus | "") {
@@ -206,9 +219,9 @@ function exportCsv() {
     "id",
     "aspirante",
     "acudiente",
+    "telefono",
+    "direccion",
     "fecha_envio",
-    "entrevista",
-    "asignado_a",
     "estado",
   ];
   const lines = rows.map((matricula) =>
@@ -216,9 +229,9 @@ function exportCsv() {
       matricula.id,
       getStudentFullName(matricula),
       getGuardianName(matricula),
+      getGuardianPhone(matricula),
+      getStudentAddress(matricula),
       matricula.fechaInscripcion,
-      matricula.interviewDate ?? "",
-      matricula.assignedTo ?? "",
       matricula.estado,
     ]
       .map(csvEscape)
@@ -243,16 +256,16 @@ function openSearchableDetail(row: Record<string, any>) {
 function rowActions(row: Record<string, any>) {
   const matricula = row as Matricula;
   return [
-    {
-      label: "Marcar en revisión",
-      action: () => void store.updateStatus(matricula.id, "EN_REVISION"),
-      disabled: matricula.status !== "PENDIENTE",
-    },
+    // {
+    //   label: "Marcar en revisión",
+    //   action: () => void store.updateStatus(matricula.id, "EN_REVISION"),
+    //   disabled: matricula.estado !== "PENDIENTE",
+    // },
     {
       label: "Agendar entrevista",
       action: () => void openDetail(matricula.id),
       disabled: !(
-        matricula.status === "PENDIENTE" || matricula.status === "EN_REVISION"
+        matricula.estado === "PENDIENTE" || matricula.status === "EN_REVISION"
       ),
     },
     {
@@ -266,7 +279,7 @@ function rowActions(row: Record<string, any>) {
       label: "Rechazar",
       action: () => void openDetail(matricula.id),
       disabled:
-        matricula.status === "APROBADA" || matricula.status === "RECHAZADA",
+        matricula.estado === "APROBADA" || matricula.status === "RECHAZADA",
       variant: "danger" as const,
     },
   ];
@@ -392,17 +405,16 @@ onMounted(() => {
         </p>
       </template>
 
-      <template #cell-interviewDate="{ row }">
-        <p class="text-sm text-gray-500">
-          {{ formatDate((row as Matricula).interviewDate) }}
+      <template #cell-telefono="{ row }">
+        <p class="text-sm text-gray-600">
+          {{ getGuardianPhone(row as Matricula) }}
         </p>
       </template>
 
-      <template #cell-assignedTo="{ row }">
-        <p v-if="(row as Matricula).assignedTo" class="text-sm text-gray-700">
-          {{ (row as Matricula).assignedTo }}
+      <template #cell-direccion="{ row }">
+        <p class="text-sm text-gray-600">
+          {{ getStudentAddress(row as Matricula) }}
         </p>
-        <p v-else class="text-sm italic text-gray-400">Sin asignar</p>
       </template>
 
       <template #cell-status="{ row }">

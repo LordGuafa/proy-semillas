@@ -8,6 +8,7 @@ export interface Inscripcion {
   readonly id: number;
   idEstudiante: number;
   idAcudiente: number;
+  fisrtname?: string;
   idEntrevista?: number;
   estado: EstadoAprobacion;
   fechaInscripcion: string;
