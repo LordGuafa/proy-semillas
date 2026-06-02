@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { estudiantesService, acudientesService } from "@/services/api";
+import { studentService, guardianService } from "@/services/api";
 import { readJSON, writeJSON } from "@/utils/storage";
 import type { Guardian } from "@/types/guardian";
 import type { Student } from "@/types/student";
@@ -418,7 +418,7 @@ export const useEstudiantesStore = defineStore("estudiantes", {
         // DEBUG: log API call and response to help trace missing students
         // eslint-disable-next-line no-console
         console.log("[estudiantes] fetching /students/all...");
-        const resp = await estudiantesService.getAll();
+        const resp = await studentService.getAll();
         // eslint-disable-next-line no-console
         console.log(
           "[estudiantes] raw response:",
@@ -467,7 +467,7 @@ export const useEstudiantesStore = defineStore("estudiantes", {
       };
       this.estudiantes = [cloneStudent(nextStudent), ...this.estudiantes];
       this.persistStudents();
-      await estudiantesService.create(
+      await studentService.create(
         nextStudent as unknown as Record<string, unknown>,
       );
       return nextStudent;
@@ -499,7 +499,7 @@ export const useEstudiantesStore = defineStore("estudiantes", {
         student.id === normalizedId && updated ? updated : student,
       );
       this.persistStudents();
-      await estudiantesService.update(
+      await studentService.update(
         id,
         (updated ?? data) as Record<string, unknown>,
       );
@@ -511,7 +511,7 @@ export const useEstudiantesStore = defineStore("estudiantes", {
         (student) => student.id !== normalizedId,
       );
       this.persistStudents();
-      await estudiantesService.delete(id);
+      await studentService.delete(id);
     },
     upsertEstudiante(student: Partial<Student> & { id: number }) {
       const normalizedStudent = mergeStudent(
@@ -539,9 +539,7 @@ export const useEstudiantesStore = defineStore("estudiantes", {
       }
       this.loadingGuardians = true;
       try {
-        const resp = (await acudientesService.getByStudent(
-          studentId,
-        )) as unknown;
+        const resp = (await guardianService.getByStudent(studentId)) as unknown;
         const raw = (resp && (resp as any).data) ?? resp;
         let guardians: Array<Partial<Guardian> & { id?: string | number }> = [];
         if (Array.isArray(raw)) {
@@ -675,7 +673,7 @@ export const useEstudiantesStore = defineStore("estudiantes", {
         );
       }
 
-      await acudientesService.create(
+      await guardianService.create(
         buildGuardianApiPayload(nextGuardian, studentId),
       );
 
@@ -712,7 +710,7 @@ export const useEstudiantesStore = defineStore("estudiantes", {
         this.guardians[studentId].find(
           (guardian) => guardian.id === guardianId,
         ) ?? null;
-      await acudientesService.updateInfo(
+      await guardianService.updateInfo(
         guardianId,
         buildGuardianApiPayload(updatedGuardian ?? data, studentId),
       );
@@ -722,7 +720,7 @@ export const useEstudiantesStore = defineStore("estudiantes", {
       this.guardians[studentId] = (this.guardians[studentId] ?? []).filter(
         (guardian) => guardian.id !== guardianId,
       );
-      await acudientesService.delete(guardianId, studentId);
+      await guardianService.delete(guardianId, studentId);
     },
   },
 });
