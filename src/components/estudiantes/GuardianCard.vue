@@ -15,67 +15,63 @@ const emit = defineEmits<{
   (event: "delete", guardianId: number): void;
 }>();
 
+
 const guardianName = computed(() =>
   nombreCompleto({
-    primerNombre: props.guardian.primerNombre ?? props.guardian.firstName ?? "",
-    segundoNombre: props.guardian.segundoNombre,
-    primerApellido: props.guardian.primerApellido ?? props.guardian.lastName ?? "",
-    segundoApellido: props.guardian.segundoApellido,
+    primerNombre: props.guardian.firstName ?? "",
+    segundoNombre: props.guardian.secondName,
+    primerApellido: props.guardian.lastName ?? "",
+    segundoApellido: props.guardian.secondLastName,
   }),
 );
 
-const guardianDocument = computed(() =>
-  `${props.guardian.documentType ?? props.guardian.tipoDocumento ?? ""} · ${
-    props.guardian.documentNumber ?? props.guardian.documentoIdentidad ?? "—"
-  }`,
+const guardianDocument = computed(
+  () => `${props.guardian.documentType} · ${props.guardian.documentNumber}`,
 );
 
 const guardianWorkplace = computed(
-  () => props.guardian.workplace ?? props.guardian.nombreEmpresaTrabajo ?? "—",
+  () => props.guardian.workplace ?? "—",
 );
 
 const guardianAddress = computed(
-  () => props.guardian.homeAddress ?? props.guardian.direccionCasa ?? "—",
+  () => props.guardian.homeAddress ?? "—",
 );
 
 const guardianCityDepartment = computed(() => {
-  const city = props.guardian.city ?? props.guardian.ciudadCasa ?? "";
-  const department = props.guardian.department ?? props.guardian.departamentoCasa ?? "";
-  const value = [city, department].filter(Boolean).join(", ");
+  const value = [props.guardian.city, props.guardian.department]
+    .filter(Boolean)
+    .join(", ");
+
   return value || "—";
 });
 
 const guardianOccupation = computed(
-  () => props.guardian.occupation ?? props.guardian.ocupacion ?? "—",
+  () => props.guardian.occupation ?? "—",
 );
 
 const guardianPhone = computed(
-  () => props.guardian.phone ?? props.guardian.telefono ?? "—",
+  () => props.guardian.phone ?? "—",
 );
 
 const guardianEmail = computed(
-  () => props.guardian.email ?? props.guardian.correoElectronico ?? "—",
+  () => props.guardian.email ?? "—",
 );
 
 const guardianKinship = computed(
-  () => props.guardian.kinship ?? props.guardian.parentesco ?? "—",
-);
-
-const guardianIsMain = computed(
-  () => props.guardian.isMainGuardian ?? props.guardian.esPrincipal ?? false,
+  () => props.guardian.kinship ?? "—",
 );
 
 const guardianIsPaymentResponsible = computed(
-  () =>
-    props.guardian.isPaymentResponsible ??
-    props.guardian.esResponsablePago ??
-    false,
+  () => props.guardian.isPaymentResponsible ?? false,
 );
 
-function formatDate(dateValue?: Date) {
+function formatDate(dateValue?: string | Date) {
   if (!dateValue) return "—";
+
   const date = new Date(dateValue);
+
   if (Number.isNaN(date.getTime())) return "—";
+
   return date.toLocaleDateString("es-CO");
 }
 </script>
@@ -92,30 +88,17 @@ function formatDate(dateValue?: Date) {
             <p class="text-sm text-accent">{{ guardianKinship }}</p>
           </div>
           <div class="flex flex-wrap gap-2">
-            <BaseBadge v-if="guardianIsMain" variant="active"
-              >Acudiente principal</BaseBadge
-            >
-            <BaseBadge v-if="guardianIsPaymentResponsible" variant="pending"
-              >Responsable de pago</BaseBadge
-            >
+            <BaseBadge v-if="guardianIsPaymentResponsible" variant="pending">Responsable de pago</BaseBadge>
           </div>
         </div>
 
         <div class="flex items-center gap-2">
-          <button
-            type="button"
-            class="rounded-full p-2 text-accent transition hover:bg-accent/10"
-            aria-label="Editar acudiente"
-            @click="emit('edit', guardian)"
-          >
+          <button type="button" class="rounded-full p-2 text-accent transition hover:bg-accent/10"
+            aria-label="Editar acudiente" @click="emit('edit', guardian)">
             <PencilSquareIcon class="h-5 w-5" />
           </button>
-          <button
-            type="button"
-            class="rounded-full p-2 text-red-400 transition hover:bg-red-50 hover:text-red-600"
-            aria-label="Eliminar acudiente"
-            @click="emit('delete', guardian.id)"
-          >
+          <button type="button" class="rounded-full p-2 text-red-400 transition hover:bg-red-50 hover:text-red-600"
+            aria-label="Eliminar acudiente" @click="emit('delete', guardian.id)">
             <TrashIcon class="h-5 w-5" />
           </button>
         </div>
@@ -172,12 +155,7 @@ function formatDate(dateValue?: Date) {
           </p>
           <p class="text-sm text-gray-900">{{ formatDate(guardian.birthdate) }}</p>
         </div>
-        <div v-if="guardian.placeOfBirth" class="md:col-span-2">
-          <p class="text-xs uppercase tracking-wide text-gray-400">
-            Lugar de nacimiento
-          </p>
-          <p class="text-sm text-gray-900">{{ guardian.placeOfBirth }}</p>
-        </div>
+
       </div>
     </div>
   </BaseCard>
