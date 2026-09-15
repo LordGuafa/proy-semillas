@@ -7,7 +7,6 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-/* Temporarily disabled auth header injection to allow testing without authentication.
 api.interceptors.request.use((config) => {
   const auth = useAuthStore();
   if (auth.token) {
@@ -16,12 +15,16 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
-*/
 
-// Simplified response handling while auth is disabled. Keep error propagation.
 api.interceptors.response.use(
   (res) => res,
-  (err) => Promise.reject(err),
+  (err) => {
+    if (err.response?.status === 401) {
+      const auth = useAuthStore();
+      auth.clearLocalSession();
+    }
+    return Promise.reject(err);
+  },
 );
 
 export const studentService = {
@@ -85,19 +88,31 @@ export const timeSlotService = {
 
 
 export const inscriptionService = {
-  create: (data: unknown) => api.post("/inscription/create", data),
+  getContext: (token: string) => api.get(`/preinscription/${encodeURIComponent(token)}`),
+  create: (token: string, data: unknown) => api.post(`/preinscription/${encodeURIComponent(token)}`, data),
   getAll: (params: unknown = {}) => api.get("/inscription", { params }),
   createSchema: (data: unknown) => api.post(`/inscription/schema`, data),
   getSchema: () => api.get(`/inscription/latest-form-schema`),
   approve: (id: string | number) => api.patch(`/inscription/${id}/approve`),
   reject: (id: string | number) => api.delete(`/inscription/${id}/reject`),
+  formalize: (id: string | number, schoolYear: number) =>
+    api.post(`/inscription/${id}/enrollments`, { school_year: schoolYear }),
+  document: (id: string | number) => api.get(`/inscription/${id}/document`),
 };
 
 export const authService = {
   login: (creds: { nombreUsuario: string; password: string }) =>
     api.post("/auth/login", creds),
+  register: (data: { name: string; email: string; password: string }) =>
+    api.post("/auth/register", data),
   logout: () => api.post("/auth/logout"),
   me: () => api.get("/auth/me"),
+};
+
+export const observationService = {
+  getAll: (studentId: string | number) => api.get(`/students/${studentId}/observations`),
+  create: (studentId: string | number, description: string) =>
+    api.post(`/students/${studentId}/observations`, { description }),
 };
 
 export default api;

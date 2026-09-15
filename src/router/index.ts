@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from "@/stores/authStore";
 import AdminLayout from "@/layouts/AdminLayout.vue";
 import LoginView from "@/views/admin/LoginView.vue";
+import RegisterView from "@/views/admin/RegisterView.vue";
 import StudentsView from "@/views/EstudiantesView.vue";
 import FormularioView from "@/views/admin/FormularioView.vue";
 import AspirantesView from "@/views/admin/AspirantesView.vue";
@@ -27,6 +28,11 @@ const router = createRouter({
       component: LoginView,
     },
     {
+      path: "/crear-cuenta",
+      name: "register",
+      component: RegisterView,
+    },
+    {
       path: "/home",
       name: "home",
       component: HomeView,
@@ -34,7 +40,7 @@ const router = createRouter({
     {
       path: "/admin",
       component: AdminLayout,
-      meta: { requiresAuth: false },
+      meta: { requiresAuth: true },
       children: [
         { path: "", redirect: "/admin/estudiantes" },
         {
@@ -120,13 +126,13 @@ const router = createRouter({
   },
 });
 
-// router.beforeEach((to) => {
-//   const authStore = useAuthStore();
-//   if (to.meta.requiresAuth && !authStore.isAuthenticated)
-//     return { path: "/login", query: { redirect: to.fullPath } };
-//   if (to.path === "/login" && authStore.isAuthenticated)
-//     return { path: "/admin/estudiantes" };
-//   return true;
-// });
+router.beforeEach((to) => {
+  const authStore = useAuthStore();
+  if (to.matched.some((route) => route.meta.requiresAuth) && !authStore.isAuthenticated)
+    return { path: "/login", query: { redirect: to.fullPath } };
+  if ((to.path === "/login" || to.path === "/crear-cuenta") && authStore.isAuthenticated)
+    return { path: "/admin/estudiantes" };
+  return true;
+});
 
 export default router

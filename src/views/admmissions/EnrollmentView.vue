@@ -10,6 +10,9 @@
                 ¡Gracias por preferirnos! A continuación encontrarás los datos necesarios para la formalización de la
                 matrícula. Por favor diligenciar todos los datos y verificar su veracidad.
             </p>
+            <p v-if="errorMessage" class="rounded-lg bg-red-50 p-3 text-center text-sm text-red-700" role="alert">
+                {{ errorMessage }}
+            </p>
         </section>
 
         <section class="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -259,6 +262,7 @@
 
 <script setup lang="ts">
 import { ref, type Ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
@@ -457,16 +461,30 @@ const handleFatherSignatureUpload = fatherSignature.handleUpload
 const clearFatherSignature = fatherSignature.clear
 const saveFatherSignature = fatherSignature.save
 
+const enrollmentStore = useEnrollmentStore()
+const route = useRoute()
+const invitationToken = typeof route.query.token === 'string' ? route.query.token : ''
+const errorMessage = ref('')
+
 onMounted(async () => {
     await Promise.all([motherSignature.mount(), fatherSignature.mount()])
+    if (!invitationToken) {
+        errorMessage.value = 'Este formulario requiere un enlace de preinscripción válido.'
+        return
+    }
+    try {
+        const context = await enrollmentStore.loadPreinscriptionContext(invitationToken)
+        const info = context.informacion_aspirante ?? {}
+        childName.value = String(info.nom_estudiante ?? '')
+    } catch {
+        errorMessage.value = 'El enlace de preinscripción venció, fue utilizado o no es válido.'
+    }
 })
 
 onBeforeUnmount(() => {
     motherSignature.unmount()
     fatherSignature.unmount()
 })
-
-const enrollmentStore = useEnrollmentStore()
 
 async function handleSubmit() {
     if (!acceptedPrivacyPolicy.value) return
@@ -531,17 +549,16 @@ async function handleSubmit() {
             correo_electronico: payerEmail.value,
         },
     }
-    console.log('payload:', JSON.stringify(payload, null, 2))
     try {
-        await enrollmentStore.submitEnrollment(payload)
+        if (!invitationToken) throw new Error('Enlace de preinscripción ausente.')
+        await enrollmentStore.submitEnrollment(invitationToken, payload)
         clearForm()
         acceptedPrivacyPolicy.value = false
         // eslint-disable-next-line no-alert
         alert('Inscripción enviada correctamente')
     } catch (err: unknown) {
         const axiosErr = err as any
-        console.log('Errores:', JSON.stringify(axiosErr?.response?.data?.detail, null, 2))
-        alert('Error al enviar la inscripción')
+        errorMessage.value = axiosErr?.response?.data?.detail ?? 'No fue posible enviar la inscripción.'
     }
 }
 

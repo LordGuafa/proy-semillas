@@ -32,13 +32,27 @@ export const useEnrollmentStore = defineStore('enrollment', {
     lastEnrollment: readJSON<EnrollmentPayload | null>(storageKey, null) as EnrollmentPayload | null,
     loading: false as boolean,
     error: null as string | null,
+    schemaVersion: null as number | null,
   }),
   actions: {
-    async submitEnrollment(payload: EnrollmentPayload) {
+    async loadPreinscriptionContext(token: string) {
+      const response = await inscriptionService.getContext(token)
+      const version = Number(response.data?.form_schema?.version)
+      this.schemaVersion = Number.isInteger(version) && version > 0 ? version : null
+      return response.data
+    },
+    async submitEnrollment(token: string, payload: EnrollmentPayload) {
       this.loading = true
       this.error = null
       try {
-        const resp = await inscriptionService.create(payload)
+        if (!this.schemaVersion) {
+          throw new Error('No se pudo identificar la versión del formulario de inscripción.')
+        }
+        const resp = await inscriptionService.create(token, {
+          ...payload,
+          schema_version: this.schemaVersion,
+          accepted_privacy_policy: true,
+        })
         // persist last submission locally
         this.lastEnrollment = payload
         writeJSON(storageKey, payload)

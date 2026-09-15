@@ -1,4 +1,4 @@
-export type RolUsuario = "directivo" | "profesor";
+export type RolUsuario = "administrador" | "directivo" | "profesor" | "usuario";
 
 export type EstadoEstudiante = "ASPIRANTE" | "ACTIVO" | "RETIRADO" | "EGRESADO";
 
