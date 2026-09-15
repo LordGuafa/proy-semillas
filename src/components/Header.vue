@@ -46,6 +46,14 @@
 				>
 					Sobre nosotros
 				</router-link>
+				<router-link
+					:to="{ name: 'login' }"
+					class="title inline-flex items-center rounded-full px-4 py-2 text-2xl lg:text-3xl header-link transition"
+					active-class="header-active"
+					exact-active-class="header-active"
+				>
+					Login
+				</router-link>
 
 			</nav>
 
@@ -93,6 +101,15 @@
 						@click="mobileMenuOpen = false"
 					>
 						Talleres
+					</router-link>
+					<router-link
+						:to="{ name: 'login' }"
+						class="title inline-flex items-center rounded-full px-4 py-2 text-2xl header-link transition"
+						active-class="header-active"
+						exact-active-class="header-active"
+						@click="mobileMenuOpen = false"
+					>
+						Login
 					</router-link>
 
 			</nav>
