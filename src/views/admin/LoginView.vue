@@ -11,9 +11,6 @@ const route = useRoute()
 const authStore = useAuthStore()
 const form = reactive({ nombreUsuario: '', password: '' })
 const errorMessage = ref('')
-const successMessage = computed(() => route.query.registered === 'true'
-    ? 'Tu cuenta fue creada. Ya puedes iniciar sesión.'
-    : '')
 const redirectPath = computed(() => String(route.query.redirect || '/admin/estudiantes'))
 
 onMounted(() => {
@@ -48,13 +45,8 @@ async function handleSubmit() {
             </div>
 
             <p v-if="errorMessage" class="mt-4 text-sm text-red-500">{{ errorMessage }}</p>
-            <p v-if="successMessage" class="mt-4 text-sm text-green-700">{{ successMessage }}</p>
 
             <BaseButton type="submit" variant="primary" size="lg" block class="mt-6">Iniciar sesión</BaseButton>
-            <p class="mt-5 text-center text-sm text-gray-600">
-                ¿Aún no tienes cuenta?
-                <RouterLink to="/crear-cuenta" class="font-semibold text-primary hover:underline">Crear cuenta</RouterLink>
-            </p>
         </form>
     </div>
 </template>

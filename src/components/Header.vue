@@ -46,14 +46,6 @@
 				>
 					Sobre nosotros
 				</router-link>
-				<router-link
-					:to="{ name: 'login' }"
-					class="title inline-flex items-center rounded-full px-4 py-2 text-2xl lg:text-3xl header-link transition"
-					active-class="header-active"
-					exact-active-class="header-active"
-				>
-					Login
-				</router-link>
 
 			</nav>
 
@@ -102,15 +94,6 @@
 					>
 						Talleres
 					</router-link>
-					<router-link
-						:to="{ name: 'login' }"
-						class="title inline-flex items-center rounded-full px-4 py-2 text-2xl header-link transition"
-						active-class="header-active"
-						exact-active-class="header-active"
-						@click="mobileMenuOpen = false"
-					>
-						Login
-					</router-link>
 
 			</nav>
 		</div>
@@ -119,13 +102,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useAuthStore } from '@/stores/authStore'
+import { ref } from 'vue'
 import logoSemillas from '@/assets/logo_semillas.svg'
 
-const auth = useAuthStore()
-const isAuth = computed(() => !!(auth && (auth as any).isAuthenticated))
-const logout = () => { if ((auth as any).logout) (auth as any).logout() }
 const mobileMenuOpen = ref(false)
 </script>
 

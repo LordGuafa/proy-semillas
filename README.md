@@ -24,6 +24,8 @@ La aplicación se abre normalmente en `http://localhost:5173`. Si se usa Docker 
 docker build --build-arg VITE_API_URL=http://localhost:8080/api/v1 -t portal-semillas .
 ```
 
+Con Docker Compose, el frontend se publica en `http://localhost:5173`; el puerto `8080` queda reservado para la API.
+
 ## Verificación
 
 ```powershell

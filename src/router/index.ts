@@ -28,11 +28,6 @@ const router = createRouter({
       component: LoginView,
     },
     {
-      path: "/crear-cuenta",
-      name: "register",
-      component: RegisterView,
-    },
-    {
       path: "/home",
       name: "home",
       component: HomeView,
@@ -78,6 +73,12 @@ const router = createRouter({
           name: "exalumnos",
           component: ExalumnosView,
           meta: { title: "Exalumnos" },
+        },
+        {
+          path: "crear-cuenta",
+          name: "register",
+          component: RegisterView,
+          meta: { title: "Crear cuenta" },
         },
       ],
     },
@@ -130,7 +131,7 @@ router.beforeEach((to) => {
   const authStore = useAuthStore();
   if (to.matched.some((route) => route.meta.requiresAuth) && !authStore.isAuthenticated)
     return { path: "/login", query: { redirect: to.fullPath } };
-  if ((to.path === "/login" || to.path === "/crear-cuenta") && authStore.isAuthenticated)
+  if (to.path === "/login" && authStore.isAuthenticated)
     return { path: "/admin/estudiantes" };
   return true;
 });

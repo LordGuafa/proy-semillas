@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
-import { ArchiveBoxIcon, ChatBubbleLeftRightIcon, ClipboardDocumentCheckIcon, ClipboardDocumentListIcon, DocumentTextIcon, UserGroupIcon } from '@heroicons/vue/24/outline'
+import { ArchiveBoxIcon, ChatBubbleLeftRightIcon, ClipboardDocumentCheckIcon, ClipboardDocumentListIcon, DocumentTextIcon, UserGroupIcon, UserPlusIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '@/stores/authStore'
 
 const router = useRouter()
@@ -15,6 +15,7 @@ const navigation = [
     { name: 'Estudiantes', to: '/admin/estudiantes', icon: UserGroupIcon },
     { name: 'Matrículas', to: '/admin/matriculas', icon: ClipboardDocumentCheckIcon },
     { name: 'Exalumnos', to: '/admin/exalumnos', icon: ArchiveBoxIcon },
+    { name: 'Crear cuenta', to: '/admin/crear-cuenta', icon: UserPlusIcon },
 ]
 
 const sectionTitle = computed(() => [...route.matched].reverse().find((entry) => entry.meta?.title)?.meta?.title as string | undefined || 'Panel administrativo')
